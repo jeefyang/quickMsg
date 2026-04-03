@@ -24,13 +24,13 @@ onMounted(async () => {
   if (res1.code != 200 || !res1.data) {
     return
   }
-  dataStore.list = res1.data
+  dataStore.pageList = res1.data
   const res2 = await (await fetch('./api/page?name=' + pageName)).json()
   console.log(res2)
   if (res2.code != 200 || !res2.data) {
     return
   }
-  dataStore.pageData = res2.data
+  dataStore.setPageData(res2.data)
   dataStore.isInit = true
 })
 </script>

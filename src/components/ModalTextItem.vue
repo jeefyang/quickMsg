@@ -37,7 +37,7 @@ watch(
   () => showModal.value,
   (_val) => {
     if (props.uuid) {
-      const item = dataStore.pageData.list.find((item) => item.uuid === props.uuid)
+      const item = dataStore.itemList.find((item) => item.uuid === props.uuid)
       if (item) {
         content.value = item.content
         return
@@ -64,7 +64,7 @@ const toSubmit = async () => {
       })
     ).json()
     if (res.code == 200) {
-      dataStore.pageData = res.data
+      dataStore.setPageData(res.data)
       msg.success(res.msg)
     } else {
       msg.error(res.msg)
@@ -86,7 +86,7 @@ const toSubmit = async () => {
       })
     ).json()
     if (res.code == 200) {
-      dataStore.pageData = res.data
+      dataStore.setPageData(res.data)
       msg.success(res.msg)
     } else {
       msg.error(res.msg)

@@ -1,11 +1,6 @@
 <template>
   <n-flex vertical>
-    <n-flex
-      vertical
-      class="ml-2 mr-2 mb-4"
-      v-for="item in dataStore.pageData.list"
-      :key="item.uuid"
-    >
+    <n-flex vertical class="ml-2 mr-2 mb-4" v-for="item in dataStore.itemList" :key="item.uuid">
       <n-card bordered>
         <div>{{ item.content }}</div>
       </n-card>
@@ -88,7 +83,7 @@ const toDel = async (item: PageItemType) => {
         })
       ).json()
       if (res.code == 200) {
-        dataStore.pageData = res.data
+        dataStore.setPageData(res.data)
         msg.success(res.msg)
       } else {
         msg.error(res.msg)
