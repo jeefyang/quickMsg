@@ -7,8 +7,33 @@
 
     <div style="flex: 1; text-align: center">{{ dataStore?.pageData?.config?.title }}</div>
     <n-flex style="flex: 1" justify="end">
-      <div class="mr-3">123</div>
+        <n-icon class="mr-3" size="20" @click="toActiveConfig">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32"><path d="M32 26v-2h-2.101a4.968 4.968 0 0 0-.732-1.753l1.49-1.49l-1.414-1.414l-1.49 1.49A4.968 4.968 0 0 0 26 20.101V18h-2v2.101a4.968 4.968 0 0 0-1.753.732l-1.49-1.49l-1.414 1.414l1.49 1.49A4.968 4.968 0 0 0 20.101 24H18v2h2.101a4.968 4.968 0 0 0 .732 1.753l-1.49 1.49l1.414 1.414l1.49-1.49a4.968 4.968 0 0 0 1.753.732V32h2v-2.101a4.968 4.968 0 0 0 1.753-.732l1.49 1.49l1.414-1.414l-1.49-1.49A4.968 4.968 0 0 0 29.899 26zm-7 2a3 3 0 1 1 3-3a3.003 3.003 0 0 1-3 3z" fill="currentColor"></path><circle cx="7" cy="20" r="2" fill="currentColor"></circle><path d="M14 20a4 4 0 1 1 4-4a4.012 4.012 0 0 1-4 4zm0-6a2 2 0 1 0 2 2a2.006 2.006 0 0 0-2-2z" fill="currentColor"></path><circle cx="21" cy="12" r="2" fill="currentColor"></circle><path d="M13.02 28.271L3 22.427V9.574l11-6.416l11.496 6.706l1.008-1.728l-12-7a1 1 0 0 0-1.008 0l-12 7A1 1 0 0 0 1 9v14a1 1 0 0 0 .496.864L12.013 30z" fill="currentColor"></path></svg>
+        </n-icon>
     </n-flex>
+    <!-- 设置 -->
+    <n-drawer v-model:show="active_config" placement="top" height="600">
+      <n-drawer-content title="设置">
+        <n-form ref="pageConfigRef" :model="pageConfigForm">
+            <n-form-item path="title" label="标题">
+                <n-input v-model:value="pageConfigForm.title" placeholder="请修改标题"></n-input>
+        </n-form-item>
+        </n-form>
+        <n-button  type="primary" @click="toEditPageConfig">修改</n-button>
+         <n-divider />
+          <n-form ref="configRef" :model="configForm">
+        <n-form-item path="isWxSend" label="微信传送">
+            <n-switch v-model:value="configForm.isWxSend" />
+        </n-form-item>
+        <n-form-item ref="wxSendUrl" label="传送路径">
+            <n-input  v-model:value="configForm.wxSendUrl" placeholder="请输入传送路径"></n-input>
+        </n-form-item>
+      </n-form>
+      <n-button class="mr-3">取消</n-button>
+      <n-button type="primary" @click="toEditConfig">确认</n-button>
+      </n-drawer-content>
+     
+    </n-drawer>
     <!-- 页码 -->
     <n-drawer v-model:show="active_page" placement="top">
       <n-drawer-content title="页码">
@@ -62,15 +87,25 @@
 </template>
 <script setup lang="ts">
 import { useDataStore } from '@/stores/data'
-import { ref } from 'vue'
+import { useMessage } from 'naive-ui';
+import { reactive, ref } from 'vue'
 
 const dataStore = useDataStore()
 const active_page = ref(false)
 const active_filter = ref(false)
+const active_config=ref(false)
+
+const msg=useMessage()
+
+const pageConfigRef=ref(null)
+const pageConfigForm=ref(<PageConfigType>{})
+
+const configRef=ref(null)
+const configForm=ref(<ConfigType>{})
 
 const typeList: { name: string; value: PageItemTypeType }[] = [
   { name: '文本', value: 'text' },
-  { name: '图片', value: 'img' },
+  { name: '图片', value: 'image' },
   { name: 'md', value: 'md' },
 ]
 
@@ -82,8 +117,60 @@ const toActivateFilter = () => {
   active_filter.value = true
 }
 
+const toActiveConfig = () => {
+    pageConfigForm.value={...dataStore.pageData.config}
+    configForm.value={...dataStore.config}
+  active_config.value = true
+}
+
+const toEditPageConfig=async()=>{
+    if(!pageConfigForm.value.title){
+        return msg.error('请填写标题')
+    }
+     const res = await (
+        await fetch('./api/editPage', {
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
+          method: 'POST',
+          body: JSON.stringify({
+           ...pageConfigForm.value
+          }),
+        })
+      ).json()
+      if (res.code == 200) {
+        dataStore.setPageData(res.data)
+        msg.success(res.msg)
+        active_config.value = false
+      } else {
+        msg.error(res.msg)
+      }
+}
+
+const toEditConfig=async()=>{
+    
+      const res = await (
+        await fetch('./api/editConfig', {
+          headers: new Headers({
+            'Content-Type': 'application/json',
+          }),
+          method: 'POST',
+          body: JSON.stringify({
+           ...configForm.value
+          }),
+        })
+      ).json()
+      if (res.code == 200) {
+        dataStore.config=res.data
+        msg.success(res.msg)
+        active_config.value = false
+      } else {
+        msg.error(res.msg)
+      }
+}
+
 const unSelectTypes = () => {
-  let list: PageItemTypeType[] = ['img', 'md', 'text']
+  let list: PageItemTypeType[] = ['image', 'md', 'text']
   list = list.filter((item) => !dataStore.filterData.types.includes(item))
   dataStore.filterData.types = list
   dataStore.setFilter()

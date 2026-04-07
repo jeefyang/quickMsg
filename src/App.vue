@@ -31,6 +31,10 @@ onMounted(async () => {
     return
   }
   dataStore.setPageData(res2.data)
+  const res3 = await (await fetch('./api/getConfig')).json()
+  if (res3.code == 200) {
+    dataStore.config = res3.data
+  }
   dataStore.isInit = true
 })
 </script>
@@ -42,7 +46,7 @@ onMounted(async () => {
       <n-message-provider>
         <n-flex vertical style="height: 100vh">
           <HeadItem></HeadItem>
-          <ContentItem style="flex: 1; overflow: auto"></ContentItem>
+          <ContentItem style="flex: 1; overflow: auto; scrollbar-width: none"></ContentItem>
           <BottomItem></BottomItem>
         </n-flex>
       </n-message-provider>

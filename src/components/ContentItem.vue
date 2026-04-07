@@ -1,13 +1,32 @@
 <template>
   <n-flex vertical>
-    <n-flex vertical class="ml-2 mr-2 mb-4" v-for="item in dataStore.itemList" :key="item.uuid">
-      <n-card bordered>
-        <div>{{ item.content }}</div>
+    <n-flex vertical class="ml-3 mr-3 mb-4" v-for="item in dataStore.itemList" :key="item.uuid">
+      <n-card bordered @click="item._switchNoPW = !item._switchNoPW">
+        <!-- 文本 -->
+        <template v-if="item.type == 'text'">
+          <div v-if="item.isPW && !item._switchNoPW">
+            {{
+              item.content
+                .split(/./)
+                .slice(0, -1)
+                .map((c) => '*')
+                .join('')
+            }}
+          </div>
+          <div v-else>{{ item.content }}</div>
+        </template>
       </n-card>
       <n-flex justify="space-between" align="center">
         <n-flex>
-          <n-button size="small" type="primary" @click="toCopy(item)">复制</n-button>
+          <n-button size="small" type="info" @click="toCopy(item)">复制</n-button>
           <n-button size="small" @click="toEdit(item)">修改</n-button>
+          <n-button
+            size="small"
+            type="primary"
+            v-if="dataStore.config.isWxSend && ['text', 'image'].includes(item.type)"
+            @click="toWx(item)"
+            >微信</n-button
+          >
           <n-button size="small" type="error" @click="toDel(item)">删除</n-button>
         </n-flex>
         <div>{{ dataStore.getDateFn(item.updateTime) }}</div>
@@ -21,6 +40,7 @@ import { useDataStore } from '@/stores/data'
 import { useDialog, useMessage } from 'naive-ui'
 import ModalTextItem from './ModalTextItem.vue'
 import { ref } from 'vue'
+import { d } from 'vue-router/dist/index-BzEKChPW.js'
 
 const dataStore = useDataStore()
 const msg = useMessage()
@@ -90,6 +110,26 @@ const toDel = async (item: PageItemType) => {
       }
     },
   })
+}
+
+const toWx = async (item: PageItemType) => {
+  const res = await (
+    await fetch('./api/toSendWX', {
+      headers: new Headers({
+        'Content-Type': 'application/json',
+      }),
+      method: 'POST',
+      body: JSON.stringify({
+        type: item.type,
+        content: item.content,
+      }),
+    })
+  ).json()
+  if (res.code == 200) {
+    msg.success(res.data.msg)
+  } else {
+    msg.error(res.msg)
+  }
 }
 
 const toCopy = async (item: PageItemType) => {

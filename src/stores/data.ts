@@ -6,6 +6,8 @@ export const useDataStore = defineStore('data', () => {
     const isInit = ref(false);
     const pageList = ref(<string[]>[]);
 
+    const config = ref(<ConfigType>{});
+
     const pageData = ref(<PageType>{
         list: [], config: { name: "", title: "" }
     });
@@ -77,5 +79,5 @@ export const useDataStore = defineStore('data', () => {
         itemList.value = list;
     };
 
-    return { isInit, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter };
+    return { isInit, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter, config };
 });

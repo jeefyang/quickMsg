@@ -1,7 +1,30 @@
 <template>
   <n-modal v-model:show="showModal">
     <n-card size="huge" aria-modal="true" bordered>
-      <n-input v-model:value="content" type="textarea" placeholder="请填写速记信息" />
+      <n-flex style="width: 100%" justify="center" class="mb-4">
+        <n-radio-group v-model:value="selectType">
+          <n-radio-button
+            v-for="item in selectList"
+            :key="item.val"
+            :value="item.val"
+            :label="item.label"
+          />
+        </n-radio-group>
+      </n-flex>
+      <!-- 文本 -->
+      <n-input
+        class="mb-2"
+        v-model:value="content"
+        type="textarea"
+        placeholder="请填写速记信息"
+        v-if="selectType == 'text'"
+      />
+      <!-- 图片 -->
+
+      <n-switch v-model:value="isPW">
+        <template #checked> 密码 </template>
+        <template #unchecked> 明文 </template>
+      </n-switch>
       <template #footer>
         <n-flex justify="end">
           <n-button class="mr-2" @click="showModal = false">取消</n-button>
@@ -23,8 +46,16 @@ const props = defineProps<{
 }>()
 const emits = defineEmits(['update:show'])
 const content = ref('')
+const isPW = ref(false)
 const dataStore = useDataStore()
 const msg = useMessage()
+const selectType = ref(<PageItemTypeType>'text')
+
+const selectList: { label: string; val: PageItemTypeType }[] = [
+  { label: '文本', val: 'text' },
+  { label: '图片', val: 'image' },
+  { label: 'md', val: 'md' },
+]
 
 const showModal = computed({
   get: () => props.show,
@@ -39,6 +70,7 @@ watch(
     if (props.uuid) {
       const item = dataStore.itemList.find((item) => item.uuid === props.uuid)
       if (item) {
+        isPW.value = !!item.isPW
         content.value = item.content
         return
       }
@@ -60,6 +92,7 @@ const toSubmit = async () => {
           uuid: props.uuid,
           content: content.value,
           page: dataStore.pageData.config.name,
+          isPW: isPW.value,
         }),
       })
     ).json()
@@ -82,6 +115,7 @@ const toSubmit = async () => {
           type: 'text',
           content: content.value,
           page: dataStore.pageData.config.name,
+          isPW: isPW.value,
         }),
       })
     ).json()
