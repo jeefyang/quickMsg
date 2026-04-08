@@ -15,16 +15,15 @@
           </div>
           <div v-else>{{ item.content }}</div>
         </template>
+        <template v-if="item.type == 'image'">
+          <n-image :src="`api/files/${item.content}`" width="100%"></n-image>
+        </template>
       </n-card>
       <n-flex justify="space-between" align="center">
         <n-flex>
           <n-button size="small" type="info" @click="toCopy(item)">复制</n-button>
-          <n-button size="small" @click="toEdit(item)">修改</n-button>
-          <n-button
-            size="small"
-            type="primary"
-            v-if="dataStore.config.isWxSend && ['text', 'image'].includes(item.type)"
-            @click="toWx(item)"
+          <n-button size="small" @click="toEdit(item)" v-if="item.type != 'image'">修改</n-button>
+          <n-button size="small" type="primary" v-if="dataStore.config.isWxSend" @click="toWx(item)"
             >微信</n-button
           >
           <n-button size="small" type="error" @click="toDel(item)">删除</n-button>
@@ -40,7 +39,6 @@ import { useDataStore } from '@/stores/data'
 import { useDialog, useMessage } from 'naive-ui'
 import ModalTextItem from './ModalTextItem.vue'
 import { ref } from 'vue'
-import { d } from 'vue-router/dist/index-BzEKChPW.js'
 
 const dataStore = useDataStore()
 const msg = useMessage()
@@ -120,8 +118,8 @@ const toWx = async (item: PageItemType) => {
       }),
       method: 'POST',
       body: JSON.stringify({
-        type: item.type,
-        content: item.content,
+        page: dataStore.pageData.config.name,
+        uuid: item.uuid,
       }),
     })
   ).json()

@@ -4,10 +4,20 @@ import { frameguard } from 'helmet';
 import { nanoid } from 'nanoid';
 import path from 'path';
 import axios from "axios";
+import sharp from 'sharp';
 
 const myRouter: Router = Router();
 const listDir = "./data/list";
 const configPath = "./data/config.json";
+const filesDir = "./data/files";
+
+
+if (!fs.existsSync(listDir)) {
+    fs.mkdirSync(listDir, { recursive: true });
+}
+if (!fs.existsSync(filesDir)) {
+    fs.mkdirSync(filesDir, { recursive: true });
+}
 
 const getConfig = () => {
     if (!fs.existsSync(configPath)) {
@@ -50,6 +60,7 @@ myRouter.get('/list', (req, res) => {
             config: {
                 name: "index",
                 title: "首页",
+                uuid: nanoid(32),
             },
             list: []
         };
@@ -82,13 +93,38 @@ myRouter.get('/page', (req, res) => {
 });
 
 myRouter.post("/addItem", (req, res) => {
-    const { type, content, page, isPW }: { type: PageItemTypeType, content: string; page: string, isPW: boolean; } = req.body;
+    let { type, content, page, isPW, filename }: { type: PageItemTypeType, content: string; page: string, isPW: boolean; filename?: string; } = req.body;
     if (!page || !fs.existsSync(path.join(listDir, `${page}.json`))) {
         return res.json({
             code: 500,
             msg: "页面不存在",
             data: null
         });
+    }
+    if (!content) {
+        return res.json({
+            code: 500,
+            msg: "内容缺失",
+            data: null
+        });
+    }
+    if (type == 'image') {
+        if (!filename) {
+            return res.json({
+                code: 500,
+                msg: "文件名缺失",
+                data: null
+            });
+        }
+        const ext = path.extname(filename);
+        const newFilename = `${nanoid(32)}${ext}`;
+        // 1. 去除前缀 (使用正则匹配 data:image/xxx;base64,)
+        const base64String = content.replace(/^data:image\/\w+;base64,/, '');
+
+        // 2. 将 Base64 字符串转换为 Buffer
+        const imageBuffer = Buffer.from(base64String, 'base64');
+        fs.writeFileSync(path.join(filesDir, newFilename), imageBuffer);
+        content = newFilename;
     }
     const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
     const json: PageItemType = {
@@ -128,6 +164,13 @@ myRouter.post("/editItem", (req, res) => {
             data: null
         });
     }
+    if (pageJson.list[index].type == 'image') {
+        return res.json({
+            code: 500,
+            msg: "图片不允许修改",
+            data: null
+        });
+    }
     pageJson.list[index] = {
         ...pageJson.list[index],
         content: content,
@@ -159,6 +202,13 @@ myRouter.post("/deleteItem", (req, res) => {
             msg: "项目不存在",
             data: null
         });
+    }
+    // 图片需要删除
+    if (pageJson.list[index].type == 'image') {
+        const filepath = path.join(filesDir, pageJson.list[index].content);
+        if (fs.existsSync(filepath)) {
+            fs.unlinkSync(filepath);
+        }
     }
     pageJson.list.splice(index, 1);
     fs.writeFileSync(path.join(listDir, `${page}.json`), JSON.stringify(pageJson));
@@ -195,8 +245,125 @@ myRouter.post("/editPage", (req, res) => {
     });
 });
 
+myRouter.post("/addPage", (req, res) => {
+    const { name, title }: PageConfigType = req.body;
+    if (!name) {
+        return res.json({
+            code: 500,
+            msg: "请填写页面名称",
+            data: null
+        });
+    }
+    if (!title) {
+        return res.json({
+            code: 500,
+            msg: "请填写标题",
+            data: null
+        });
+    }
+    if (fs.existsSync(path.join(listDir, `${name}.json`))) {
+        return res.json({
+            code: 500,
+            msg: "页面已存在",
+            data: null
+        });
+    }
+    const pageJson: PageType = {
+        config: {
+            title: title,
+            name: name,
+            uuid: nanoid(32),
+        },
+        list: []
+    };
+    fs.writeFileSync(path.join(listDir, `${name}.json`), JSON.stringify(pageJson));
+    res.json({
+        code: 200,
+        msg: "操作成功",
+        data: pageJson
+    });
+});
+
+myRouter.post("/deletePage", (req, res) => {
+    const { uuid, name }: { uuid: string, name: string; } = req.body;
+    if (!uuid) {
+        return res.json({
+            code: 500,
+            msg: "匹配不上",
+            data: null
+        });
+    }
+    if (!name) {
+        return res.json({
+            code: 500,
+            msg: "匹配不上",
+            data: null
+        });
+    }
+    if (name == 'index') {
+        return res.json({
+            code: 500,
+            msg: "不能删除首页",
+            data: null
+        });
+    }
+    if (!fs.existsSync(path.join(listDir, `${name}.json`))) {
+        return res.json({
+            code: 500,
+            msg: "匹配不上",
+            data: null
+        });
+    }
+    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
+    if (pageJson.config.uuid != uuid) {
+        return res.json({
+            code: 500,
+            msg: "匹配不上",
+            data: null
+        });
+    }
+
+    fs.unlinkSync(path.join(listDir, `${name}.json`));
+    return res.json({
+        code: 200,
+        msg: "操作成功",
+        data: JSON.parse(fs.readFileSync(path.join(listDir, `index.json`), 'utf-8'))
+    });
+});
+
 myRouter.post("/toSendWX", async (req, res) => {
-    const { type, content } = req.body;
+    const { page, uuid }: { page: string; uuid: string; } = req.body;
+    if (!page || !fs.existsSync(path.join(listDir, `${page}.json`))) {
+        return res.json({
+            code: 500,
+            msg: "页面不存在",
+            data: null
+        });
+    }
+    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
+    const index = pageJson.list.findIndex(c => c.uuid == uuid);
+    if (index == -1) {
+        return res.json({
+            code: 500,
+            msg: "项目不存在",
+            data: null
+        });
+    }
+    const item = pageJson.list[index];
+    let content = item.content;
+    let newfilename = `${nanoid(32)}.png`;
+    if (item.type == "image") {
+        let extname = path.extname(item.content).toLocaleLowerCase();
+        if (![".png", '.jpg', '.jpeg'].includes(extname)) {
+            await sharp(path.join(filesDir, item.content)).toFile(path.join(filesDir, newfilename));
+            content = newfilename;
+            extname = '.png';
+        }
+        content = fs.readFileSync(path.join(filesDir, content), 'base64');
+
+        content = `data:image/${extname.slice(1)};base64,${content}`;
+    }
+
     if (!fs.existsSync(configPath)) {
         fs.writeFileSync(configPath, "{}");
     }
@@ -208,7 +375,10 @@ myRouter.post("/toSendWX", async (req, res) => {
             data: null
         });
     }
-    const data = await axios.post(config.wxSendUrl, { type, content });
+    const data = await axios.post(config.wxSendUrl, { type: item.type, content });
+    if (fs.existsSync(path.join(filesDir, newfilename))) {
+        fs.unlinkSync(path.join(filesDir, newfilename));
+    }
     res.json({
         code: 200,
         msg: "操作成功",
@@ -216,5 +386,10 @@ myRouter.post("/toSendWX", async (req, res) => {
     });
 });
 
+myRouter.get("/files/:filename", async (req, res) => {
+    const { filename } = req.params;
+    return res.sendFile(path.resolve(path.join(filesDir, filename)));
+
+});
 
 export default myRouter;

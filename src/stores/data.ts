@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import { defineStore } from 'pinia';
 
+
 export const useDataStore = defineStore('data', () => {
 
     const isInit = ref(false);
@@ -9,7 +10,7 @@ export const useDataStore = defineStore('data', () => {
     const config = ref(<ConfigType>{});
 
     const pageData = ref(<PageType>{
-        list: [], config: { name: "", title: "" }
+        list: [], config: { name: "", title: "", uuid: "" }
     });
 
     const itemList = ref(<PageItemType[]>[]);
@@ -79,5 +80,14 @@ export const useDataStore = defineStore('data', () => {
         itemList.value = list;
     };
 
-    return { isInit, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter, config };
+    const updatePageList = async () => {
+        const res = await (await fetch('./api/list')).json();
+        if (res.code != 200 || !res.data) {
+            return res;
+        }
+        pageList.value = res.data;
+        return res;
+    };
+
+    return { isInit, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter, config, updatePageList };
 });

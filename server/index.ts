@@ -61,13 +61,7 @@ else {
 
 }
 
-// 创建 data 文件夹
-if (!fs.existsSync("./data")) {
-    fs.mkdirSync("./data", { recursive: true });
-}
-if (!fs.existsSync("./data/list")) {
-    fs.mkdirSync("./data/list", { recursive: true });
-}
+
 
 
 export { app as viteNodeApp };

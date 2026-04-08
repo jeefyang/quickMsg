@@ -1,9 +1,10 @@
 type PageConfigType = {
     name: string;
     title: string;
+    uuid: string;
 };
 
-type PageItemTypeType = "text" | "image" | "md";
+type PageItemTypeType = "text" | "image" | "markdown";
 
 type PageItemType = {
     type: PageItemTypeType;
