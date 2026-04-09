@@ -5,7 +5,7 @@ import { defineStore } from 'pinia';
 export const useDataStore = defineStore('data', () => {
 
     const isInit = ref(false);
-    const pageList = ref(<string[]>[]);
+    const pageList = ref(<PageConfigType[]>[]);
 
     const config = ref(<ConfigType>{});
 
@@ -89,5 +89,32 @@ export const useDataStore = defineStore('data', () => {
         return res;
     };
 
-    return { isInit, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter, config, updatePageList };
+    const updatePageData = async (name?: string) => {
+        const res = await (await fetch(`./api/page?name=${name || pageData.value.config.name}`)).json();
+        if (res.code != 200 || !res.data) {
+            return res;
+        }
+        setPageData(res.data);
+        // 获取当前URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // 更新特定参数
+        urlParams.set('pageName', pageData.value.config.name);
+
+        // 替换当前状态
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        history.replaceState({ pageName: pageData.value.config.name }, '', newUrl);
+        return res;
+    };
+
+    const updateConfig = async () => {
+        const res = await (await fetch('./api/getConfig')).json();
+        if (res.code != 200 || !res.data) {
+            return res;
+        }
+        config.value = res.data;
+        return res;
+    };
+
+    return { isInit, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter, config, updatePageList, updatePageData, updateConfig };
 });

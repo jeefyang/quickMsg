@@ -67,10 +67,14 @@ myRouter.get('/list', (req, res) => {
         list.push('index.json');
         fs.writeFileSync(path.join(listDir, list[0]), JSON.stringify(json));
     }
+    const data = list.map(c => {
+        const json: PageType = JSON.parse(fs.readFileSync(path.join(listDir, c), 'utf-8'));
+        return json.config;
+    });
     res.json({
         code: 200,
         msg: "操作成功",
-        data: list.map(c => path.basename(c, '.json'))
+        data
     });
 });
 
@@ -322,7 +326,16 @@ myRouter.post("/deletePage", (req, res) => {
             data: null
         });
     }
-
+    for (let i = 0; i < pageJson.list.length; i++) {
+        const item = pageJson.list[i];
+        if (item.type != 'image') {
+            continue;
+        }
+        const p = path.join(filesDir, item.content);
+        if (fs.existsSync(p)) {
+            fs.unlinkSync(p);
+        }
+    }
     fs.unlinkSync(path.join(listDir, `${name}.json`));
     return res.json({
         code: 200,

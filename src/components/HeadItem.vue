@@ -7,6 +7,24 @@
 
     <div style="flex: 1; text-align: center">{{ dataStore?.pageData?.config?.title }}</div>
     <n-flex style="flex: 1" justify="end">
+      <!-- 添加按钮 -->
+      <n-icon class="mr-3" size="20" @click="toActiveAddPage">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M19 19H5V5h9V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9h-2v9z"
+            fill="currentColor"
+          ></path>
+          <path
+            d="M15 13h2v4h-2zm-8-3h2v7H7zm4-3h2v10h-2zm8-2V3h-2v2h-2v2h2v2h2V7h2V5z"
+            fill="currentColor"
+          ></path>
+        </svg>
+      </n-icon>
+      <!-- 设置按钮 -->
       <n-icon class="mr-3" size="20" @click="toActiveConfig">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -40,7 +58,12 @@
         </n-form>
         <n-flex>
           <n-button type="primary" @click="toEditPageConfig">修改</n-button>
-          <n-button type="error" @click="toDelPage">删除</n-button>
+          <n-button
+            type="error"
+            @click="toDelPage"
+            v-if="dataStore?.pageData?.config?.name != 'index'"
+            >删除</n-button
+          >
         </n-flex>
         <n-divider />
         <n-form ref="configRef" :model="configForm">
@@ -51,17 +74,36 @@
             <n-input v-model:value="configForm.wxSendUrl" placeholder="请输入传送路径"></n-input>
           </n-form-item>
         </n-form>
-        <n-button class="mr-3">取消</n-button>
+        <n-button class="mr-3" @click="active_config = false">取消</n-button>
         <n-button type="primary" @click="toEditConfig">确认</n-button>
+      </n-drawer-content>
+    </n-drawer>
+
+    <!-- 添加 -->
+    <n-drawer v-model:show="active_add_page" placement="top" height="600">
+      <n-drawer-content title="添加页面">
+        <n-form ref="pageConfigRef" :model="pageConfigForm">
+          <n-form-item path="title" label="标题">
+            <n-input v-model:value="addPageForm.title" placeholder="请输入标题"></n-input>
+          </n-form-item>
+          <n-form-item path="title" label="标识名">
+            <n-input v-model:value="addPageForm.name" placeholder="请输入标识名"></n-input>
+          </n-form-item>
+        </n-form>
+        <n-button class="mr-3" @click="active_add_page = false">取消</n-button>
+        <n-button type="primary" @click="toAddPage">确认</n-button>
       </n-drawer-content>
     </n-drawer>
     <!-- 页码 -->
     <n-drawer v-model:show="active_page" placement="top">
       <n-drawer-content title="页码">
         <n-button
+          class="mr-3"
           v-for="item in dataStore.pageList"
-          :type="item == dataStore?.pageData?.config?.name ? 'primary' : 'default'"
-          >{{ item }}</n-button
+          :key="item.uuid"
+          :type="item.name == dataStore?.pageData?.config?.name ? 'primary' : 'default'"
+          @click="toSelectPage(item)"
+          >{{ item.title }}</n-button
         >
       </n-drawer-content>
     </n-drawer>
@@ -136,18 +178,22 @@
 </template>
 <script setup lang="ts">
 import { useDataStore } from '@/stores/data'
-import { useMessage } from 'naive-ui'
-import { reactive, ref } from 'vue'
+import { useDialog, useMessage } from 'naive-ui'
+import { ref } from 'vue'
 
 const dataStore = useDataStore()
 const active_page = ref(false)
 const active_filter = ref(false)
 const active_config = ref(false)
+const active_add_page = ref(false)
 
 const msg = useMessage()
+const dialog = useDialog()
 
 const pageConfigRef = ref(null)
 const pageConfigForm = ref(<PageConfigType>{})
+
+const addPageForm = ref(<Partial<PageConfigType>>{})
 
 const configRef = ref(null)
 const configForm = ref(<ConfigType>{})
@@ -170,6 +216,46 @@ const toActiveConfig = () => {
   pageConfigForm.value = { ...dataStore.pageData.config }
   configForm.value = { ...dataStore.config }
   active_config.value = true
+}
+
+const toActiveAddPage = () => {
+  addPageForm.value = {
+    title: '',
+    name: '',
+  }
+  active_add_page.value = true
+}
+
+const toAddPage = async () => {
+  if (!addPageForm.value.title) {
+    return msg.error('请填写标题')
+  }
+  if (!addPageForm.value.name) {
+    return msg.error('请填写标识名')
+  }
+  const res = await (
+    await fetch('./api/addPage', {
+      headers: new Headers({
+        'Content-Type': 'application/json',
+      }),
+      method: 'POST',
+      body: JSON.stringify({
+        ...addPageForm.value,
+      }),
+    })
+  ).json()
+  if (res.code != 200) {
+    msg.error(res.msg)
+    return
+  }
+  dataStore.setPageData(res.data)
+  const res1 = await dataStore.updatePageList()
+  if (res1.code != 200) {
+    msg.error(res1.msg)
+    return
+  }
+  msg.success(res1.msg)
+  active_add_page.value = false
 }
 
 const toEditPageConfig = async () => {
@@ -218,6 +304,23 @@ const toEditConfig = async () => {
 }
 
 const toDelPage = async () => {
+  const log: boolean = await new Promise((resolve) => {
+    dialog.warning({
+      title: '删除',
+      content: '确定要删除当前页面吗？',
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: () => {
+        resolve(true)
+      },
+      onNegativeClick: () => {
+        resolve(false)
+      },
+    })
+  })
+  if (!log) {
+    return
+  }
   const res = await (
     await fetch('./api/deletePage', {
       headers: new Headers({
@@ -230,14 +333,19 @@ const toDelPage = async () => {
       }),
     })
   ).json()
-  if (res.code == 200) {
-    msg.info(res.msg)
-    const res1 = await dataStore.updatePageList()
-    if (res1.code != 200) {
-      msg.error(res.msg)
-    }
-  } else {
+  if (res.code != 200) {
+    msg.error(res.msg)
+    return
   }
+
+  dataStore.setPageData(res.data)
+  const res1 = await dataStore.updatePageList()
+  if (res1.code != 200) {
+    msg.error(res1.msg)
+    return
+  }
+  msg.success(res1.msg)
+  active_config.value = false
 }
 
 const unSelectTypes = () => {
@@ -245,6 +353,21 @@ const unSelectTypes = () => {
   list = list.filter((item) => !dataStore.filterData.types.includes(item))
   dataStore.filterData.types = list
   dataStore.setFilter()
+}
+
+const toSelectPage = async (item: PageConfigType) => {
+  if (item.name == dataStore.pageData.config.name) {
+    msg.warning('不能选择当前页面')
+    return
+  }
+  const res = await dataStore.updatePageData(item.name)
+  console.log(res)
+  if (res.code != 200) {
+    msg.error(res.msg)
+    return
+  }
+  msg.success(res.msg)
+  active_page.value = false
 }
 
 const toSort = () => {

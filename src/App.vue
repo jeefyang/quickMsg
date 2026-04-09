@@ -2,7 +2,7 @@
 import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDark } from '@vueuse/core'
-import { darkTheme, darkTheme as darkThemePreset } from 'naive-ui'
+import { darkTheme, darkTheme as darkThemePreset, useMessage } from 'naive-ui'
 import { useDataStore } from './stores/data'
 
 import HeadItem from './components/HeadItem.vue'
@@ -15,25 +15,25 @@ const isDark = useDark()
 const dataStore = useDataStore()
 const route = useRoute()
 const queryParams = route.query
-
-console.log(queryParams)
-const pageName = queryParams.pageName || 'index'
+const pageName = <string>queryParams.pageName || 'index'
 
 onMounted(async () => {
-  const res1 = await (await fetch('./api/list')).json()
-  if (res1.code != 200 || !res1.data) {
+  const res1 = await dataStore.updatePageList()
+  const msg = useMessage()
+  if (res1.code != 200) {
+    msg.error(res1.msg)
     return
   }
-  dataStore.pageList = res1.data
-  const res2 = await (await fetch('./api/page?name=' + pageName)).json()
-  console.log(res2)
-  if (res2.code != 200 || !res2.data) {
+  const res2 = await dataStore.updatePageData(pageName)
+  if (res2.code != 200) {
+    msg.error(res2.msg)
     return
   }
-  dataStore.setPageData(res2.data)
-  const res3 = await (await fetch('./api/getConfig')).json()
-  if (res3.code == 200) {
-    dataStore.config = res3.data
+
+  const res3 = await dataStore.updateConfig()
+  if (res3.code != 200) {
+    msg.error(res3.msg)
+    return
   }
   dataStore.isInit = true
 })

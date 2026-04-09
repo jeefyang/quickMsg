@@ -57,11 +57,26 @@ if (isDev) {
     })();
 }
 else {
-    app.use(helmet());
+    const clientPath = path.resolve("./dist/client");
+    // 默认index.html
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(clientPath, 'index.html'));
+    });
+    // 其他路径
+    app.get("/{*splat}", (req, res) => {
+        const splat: string[] = (<any>req.params).splat;
+        res.sendFile(path.join(clientPath, splat.join('/')), (e) => {
+            // 如果找不到文件,则返回 index.html
+            e && res.sendFile(path.join(clientPath, 'index.html'));
+        });
+    });
+    // 这里的 process.env.SERVER_PORT 正好能接住你之前在 PM2 ecosystem 配置里写的 PORT: 4000
+    const port = process.env.SERVER_PORT || 3000;
+
+    app.listen(port, () => {
+        console.log(`🚀 后端服务已启动，生产环境监听端口: ${port}`);
+    });
 
 }
-
-
-
 
 export { app as viteNodeApp };
