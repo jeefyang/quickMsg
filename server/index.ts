@@ -2,12 +2,9 @@
 import type { Express } from 'express';
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import { createServer } from 'vite';
 import http from 'http';
 import path from 'path';
-import fs from "fs";
-import { fileURLToPath } from 'node:url';
 import myRouter from './myRouter.js';
 
 
