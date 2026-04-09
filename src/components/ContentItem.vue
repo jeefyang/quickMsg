@@ -65,14 +65,22 @@
           <MdContenItem :content="item.content" v-else></MdContenItem>
         </template>
       </n-card>
+      <!-- 按钮 -->
       <n-flex justify="space-between" align="center">
         <n-flex>
           <n-button size="tiny" type="info" @click="toCopy(item)">复制</n-button>
           <n-button size="tiny" @click="toEdit(item)">修改</n-button>
-          <n-button size="tiny" type="primary" v-if="dataStore.config.isWxSend" @click="toWx(item)"
+          <n-button
+            size="tiny"
+            type="primary"
+            v-if="dataStore.config.isWxSend"
+            @click="toWx(item)"
+            :loading="item.uuid == loading"
             >微信</n-button
           >
-          <n-button size="tiny" type="error" @click="toDel(item)">删除</n-button>
+          <n-button size="tiny" type="error" :loading="item.uuid == loading" @click="toDel(item)"
+            >删除</n-button
+          >
         </n-flex>
         <div style="font-size: 12px">{{ dataStore.getDateFn(item.updateTime) }}</div>
       </n-flex>
@@ -92,6 +100,7 @@ const msg = useMessage()
 const dialog = useDialog()
 const showModal = ref(false)
 const editUUid = ref('')
+const loading = ref('')
 
 // 将上面的 copyText 函数定义放在这里，或者单独引入
 function copyText(text: any) {
@@ -129,35 +138,48 @@ const toEdit = (item: PageItemType) => {
 }
 
 const toDel = async (item: PageItemType) => {
-  const res = dialog.warning({
-    title: '提示',
-    content: '确定要删除吗？',
-    positiveText: '确定',
-    negativeText: '取消',
-    onPositiveClick: async () => {
-      const res = await (
-        await fetch('./api/deleteItem', {
-          headers: new Headers({
-            'Content-Type': 'application/json',
-          }),
-          method: 'POST',
-          body: JSON.stringify({
-            uuid: item.uuid,
-            page: dataStore.pageData.config.name,
-          }),
-        })
-      ).json()
-      if (res.code == 200) {
-        dataStore.setPageData(res.data)
-        msg.success(res.msg)
-      } else {
-        msg.error(res.msg)
-      }
-    },
+  loading.value = item.uuid
+  const log: boolean = await new Promise((resolve) => {
+    dialog.warning({
+      title: '提示',
+      content: '确定要删除吗？',
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: () => {
+        resolve(true)
+      },
+      onNegativeClick: () => {
+        resolve(false)
+      },
+    })
   })
+  if (!log) {
+    loading.value = ''
+    return
+  }
+  const res = await (
+    await fetch('./api/deleteItem', {
+      headers: new Headers({
+        'Content-Type': 'application/json',
+      }),
+      method: 'POST',
+      body: JSON.stringify({
+        uuid: item.uuid,
+        page: dataStore.pageData.config.name,
+      }),
+    })
+  ).json()
+  if (res.code == 200) {
+    dataStore.setPageData(res.data)
+    msg.success(res.msg)
+  } else {
+    msg.error(res.msg)
+  }
+  loading.value = ''
 }
 
 const toWx = async (item: PageItemType) => {
+  loading.value = item.uuid
   const res = await (
     await fetch('./api/toSendWX', {
       headers: new Headers({
@@ -175,6 +197,7 @@ const toWx = async (item: PageItemType) => {
   } else {
     msg.error(res.msg)
   }
+  loading.value = ''
 }
 
 const toCopy = async (item: PageItemType) => {
