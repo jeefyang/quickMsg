@@ -98,7 +98,7 @@
     <n-drawer v-model:show="active_page" placement="top">
       <n-drawer-content title="页码">
         <n-button
-          class="mr-3"
+          class="m-2"
           v-for="item in dataStore.pageList"
           :key="item.uuid"
           :type="item.name == dataStore?.pageData?.config?.name ? 'primary' : 'default'"
