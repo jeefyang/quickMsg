@@ -15,6 +15,21 @@ import UnoCSS from 'unocss/vite';
 export default defineConfig({
     build: {
         outDir: 'dist/client',
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    // 如果是 node_modules 里的文件
+                    if (id.includes('node_modules')) {
+                        // 将 Vue 相关库单独打包
+                        if (id.includes('vue') || id.includes('vue-router') || id.includes('pinia')) {
+                            return 'vue-vendor';
+                        }
+                        // 其他第三方库打包到 common
+                        return 'common-vendor';
+                    }
+                }
+            }
+        }
     },
     plugins: [
         vue(),
