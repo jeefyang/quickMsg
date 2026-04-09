@@ -10,6 +10,7 @@
         "build-only": "vite build --config vite.config.node.ts && vite build --config vite.config.ts",
         "type-check": "vue-tsc --build",
         "format": "prettier --write --experimental-cli src/",
+        "update": "npm run build && pm2 reload ecosystem.config.cjs",
         "start": "pm2 start ecosystem.config.cjs",
         "stop": "pm2 stop ecosystem.config.cjs",
         "restart": "pm2 restart ecosystem.config.cjs",
