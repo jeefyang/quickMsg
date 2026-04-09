@@ -1,6 +1,6 @@
 <template>
   <n-flex justify="space-between" class="mt-4" align="center">
-    <n-flex style="flex: 1">
+    <n-flex style="flex: 1; flex-wrap: nowrap">
       <n-button class="ml-3" type="primary" size="small" @click="toActivatePage">页码</n-button>
       <n-button type="info" size="small" @click="toActivateFilter">过滤</n-button>
     </n-flex>
@@ -8,7 +8,7 @@
     <div style="flex: 1; text-align: center">{{ dataStore?.pageData?.config?.title }}</div>
     <n-flex style="flex: 1" justify="end">
       <!-- 添加按钮 -->
-      <n-icon class="mr-3" size="20" @click="toActiveAddPage">
+      <n-icon class="mr-2" size="20" @click="toActiveAddPage">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -25,7 +25,7 @@
         </svg>
       </n-icon>
       <!-- 设置按钮 -->
-      <n-icon class="mr-3" size="20" @click="toActiveConfig">
+      <n-icon class="mr-5" size="20" @click="toActiveConfig">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           xmlns:xlink="http://www.w3.org/1999/xlink"

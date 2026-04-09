@@ -1,5 +1,5 @@
 <template>
-  <n-flex justify="center" class="mb-8" @click="toAdd">
+  <n-flex justify="start" class="mb-12 ml-5" @click="toAdd">
     <n-icon-wrapper :size="40" :border-radius="20">
       <n-icon size="50">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
