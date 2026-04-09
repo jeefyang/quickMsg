@@ -40,3 +40,4 @@ __screenshots__/
 data
 
 ecosystem.config.cjs
+components.d.ts
