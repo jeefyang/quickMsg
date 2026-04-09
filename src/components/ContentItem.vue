@@ -201,7 +201,11 @@ const toWx = async (item: PageItemType) => {
 }
 
 const toCopy = async (item: PageItemType) => {
-  const res = await copyText(item.content)
+  let content = item.content
+  if (item.type == 'image') {
+    content = location.origin + '/api/files/' + item.content
+  }
+  const res = await copyText(content)
   if (res) {
     msg.success('复制成功')
   } else {
