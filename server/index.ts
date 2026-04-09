@@ -13,9 +13,16 @@ import myRouter from './myRouter.js';
 
 const app: Express = express();
 
+// 1. 处理 JSON 格式的请求体 (通常用于 API 接口)
+// 将限制调整为 50MB (根据你的需求调整)
+app.use(express.json({ limit: '50mb' }));
+// 2. 处理 表单格式 的请求体 (通常用于表单提交)
+// 将限制调整为 50MB
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 app.use(cors());
-app.use(express.json());
 app.use("/api", myRouter);
+
 
 app.get('/health', (_req, res) => {
     res.json({ status: 'OK' });

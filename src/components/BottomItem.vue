@@ -10,12 +10,12 @@
       </n-icon>
     </n-icon-wrapper>
   </n-flex>
-  <ModalTextItem v-model:show="showModal"></ModalTextItem>
+  <ModalContentItem v-model:show="showModal"></ModalContentItem>
 </template>
 <script setup lang="ts">
 import { useDataStore } from '@/stores/data'
 import { reactive, ref } from 'vue'
-import ModalTextItem from './ModalTextItem.vue'
+import ModalContentItem from './ModalContentItem.vue'
 
 const dataStore = useDataStore()
 const showModal = ref(false)

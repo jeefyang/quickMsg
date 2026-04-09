@@ -168,7 +168,8 @@ myRouter.post("/editItem", (req, res) => {
             data: null
         });
     }
-    if (pageJson.list[index].type == 'image') {
+    const item = pageJson.list[index];
+    if (item.type == 'image' && item.content != content) {
         return res.json({
             code: 500,
             msg: "图片不允许修改",

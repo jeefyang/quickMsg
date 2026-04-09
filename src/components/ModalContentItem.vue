@@ -1,8 +1,8 @@
 <template>
   <n-modal v-model:show="showModal">
-    <n-card size="huge" aria-modal="true" bordered>
-      <n-flex style="width: 100%" justify="center" class="mb-4">
-        <n-radio-group v-model:value="selectType">
+    <n-card size="huge" aria-modal="true" bordered v-if="!switchMd">
+      <n-flex style="width: 100%" justify="center" class="mb-4" v-if="!props.uuid">
+        <n-radio-group v-model:value="selectType" @update:value="toChangeSelect">
           <n-radio-button
             v-for="item in selectList"
             :key="item.val"
@@ -18,11 +18,12 @@
           v-model:value="content"
           type="textarea"
           placeholder="请填写速记信息"
+          style="min-height: 20vh"
         />
       </template>
       <!-- 图片 -->
       <template v-if="selectType == 'image'">
-        <n-flex vertical>
+        <n-flex vertical v-if="!props.uuid">
           <n-upload multiple :max="1" @change="toChangeUpload" ref="uploadRef" v-if="!content">
             <n-upload-dragger>
               <div style="margin-bottom: 12px">
@@ -47,8 +48,23 @@
             <n-button type="error" @click="clearUpload">清除</n-button>
           </n-flex>
         </n-flex>
+        <n-flex justify="center" v-else>
+          <n-image :src="`api/files/${content}`" width="100%"></n-image>
+        </n-flex>
       </template>
-
+      <!-- markdown -->
+      <template v-if="selectType == 'markdown'">
+        <n-flex vertical align="center">
+          <n-input
+            class="mb-2"
+            v-model:value="content"
+            type="textarea"
+            placeholder="请填写markdown"
+            style="min-height: 30vh"
+          />
+          <n-button @click="switchMd = true">预览</n-button>
+        </n-flex>
+      </template>
       <n-divider />
       <n-switch v-model:value="isPW">
         <template #checked> 密码 </template>
@@ -62,12 +78,19 @@
         </n-flex>
       </template>
     </n-card>
+    <n-card v-else>
+      <n-flex vertical justify="center">
+        <md-conten-item :content="content"></md-conten-item>
+        <n-button class="mb-3" type="primary" @click="switchMd = false">返回</n-button>
+      </n-flex>
+    </n-card>
   </n-modal>
 </template>
 <script setup lang="ts">
 import { useDataStore } from '@/stores/data'
 import { useMessage, type UploadFileInfo, type UploadInst } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
+import MdContenItem from './MdContenItem.vue'
 
 const props = defineProps<{
   show: boolean
@@ -80,6 +103,7 @@ const isPW = ref(false)
 const dataStore = useDataStore()
 const msg = useMessage()
 const selectType = ref(<PageItemTypeType>'text')
+const switchMd = ref(false)
 
 const uploadRef = ref<UploadInst | null>(null)
 
@@ -99,17 +123,28 @@ const showModal = computed({
 watch(
   () => showModal.value,
   (_val) => {
+    switchMd.value = false
     if (props.uuid) {
       const item = dataStore.itemList.find((item) => item.uuid === props.uuid)
       if (item) {
+        console.log(item)
         isPW.value = !!item.isPW
         content.value = item.content
+        selectType.value = item.type
         return
       }
     }
     content.value = ''
   },
 )
+
+const toChangeSelect = () => {
+  content.value = ''
+  switchMd.value = false
+  if (uploadRef.value) {
+    uploadRef.value.clear()
+  }
+}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
