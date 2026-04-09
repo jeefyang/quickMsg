@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRoute } from 'vue-router'
 import { useDark } from '@vueuse/core'
 import { darkTheme, darkTheme as darkThemePreset, useMessage } from 'naive-ui'
 import { useDataStore } from './stores/data'
@@ -13,17 +12,16 @@ import BottomItem from './components/BottomItem.vue'
 const isDark = useDark()
 
 const dataStore = useDataStore()
-const route = useRoute()
-const queryParams = route.query
-const pageName = <string>queryParams.pageName || 'index'
 
 onMounted(async () => {
+  const pageName = new URLSearchParams(window.location.search).get('pageName') || 'index'
   const res1 = await dataStore.updatePageList()
   const msg = useMessage()
   if (res1.code != 200) {
     msg.error(res1.msg)
     return
   }
+
   const res2 = await dataStore.updatePageData(pageName)
   if (res2.code != 200) {
     msg.error(res2.msg)
