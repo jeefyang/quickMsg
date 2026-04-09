@@ -44,7 +44,9 @@
             </n-upload-dragger>
           </n-upload>
           <n-flex vertical align="center" v-else>
-            <n-image :src="content" width="100%"></n-image>
+            <div style="width: 100%; max-height: 30vh; overflow: auto">
+              <n-image :src="content" width="100%"></n-image>
+            </div>
             <n-button type="error" @click="clearUpload">清除</n-button>
           </n-flex>
         </n-flex>
