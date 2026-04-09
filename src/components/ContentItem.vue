@@ -67,14 +67,14 @@
       </n-card>
       <n-flex justify="space-between" align="center">
         <n-flex>
-          <n-button size="small" type="info" @click="toCopy(item)">复制</n-button>
-          <n-button size="small" @click="toEdit(item)">修改</n-button>
-          <n-button size="small" type="primary" v-if="dataStore.config.isWxSend" @click="toWx(item)"
+          <n-button size="tiny" type="info" @click="toCopy(item)">复制</n-button>
+          <n-button size="tiny" @click="toEdit(item)">修改</n-button>
+          <n-button size="tiny" type="primary" v-if="dataStore.config.isWxSend" @click="toWx(item)"
             >微信</n-button
           >
-          <n-button size="small" type="error" @click="toDel(item)">删除</n-button>
+          <n-button size="tiny" type="error" @click="toDel(item)">删除</n-button>
         </n-flex>
-        <div>{{ dataStore.getDateFn(item.updateTime) }}</div>
+        <div style="font-size: 12px">{{ dataStore.getDateFn(item.updateTime) }}</div>
       </n-flex>
     </n-flex>
     <ModalContentItem v-model:show="showModal" :uuid="editUUid"></ModalContentItem>
