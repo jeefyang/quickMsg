@@ -57,10 +57,11 @@
           </n-form-item>
         </n-form>
         <n-flex>
-          <n-button type="primary" @click="toEditPageConfig">修改</n-button>
+          <n-button type="primary" @click="toEditPageConfig" :loading="loading">修改</n-button>
           <n-button
             type="error"
             @click="toDelPage"
+            :loading="loading"
             v-if="dataStore?.pageData?.config?.name != 'index'"
             >删除</n-button
           >
@@ -75,7 +76,7 @@
           </n-form-item>
         </n-form>
         <n-button class="mr-3" @click="active_config = false">取消</n-button>
-        <n-button type="primary" @click="toEditConfig">确认</n-button>
+        <n-button type="primary" @click="toEditConfig" :loading="loading">确认</n-button>
       </n-drawer-content>
     </n-drawer>
 
@@ -91,7 +92,7 @@
           </n-form-item>
         </n-form>
         <n-button class="mr-3" @click="active_add_page = false">取消</n-button>
-        <n-button type="primary" @click="toAddPage">确认</n-button>
+        <n-button type="primary" @click="toAddPage" :loading="loading">确认</n-button>
       </n-drawer-content>
     </n-drawer>
     <!-- 页码 -->
@@ -103,6 +104,7 @@
           :key="item.uuid"
           :type="item.name == dataStore?.pageData?.config?.name ? 'primary' : 'default'"
           @click="toSelectPage(item)"
+          :loading="loading"
           >{{ item.title }}</n-button
         >
       </n-drawer-content>
@@ -186,6 +188,7 @@ const active_page = ref(false)
 const active_filter = ref(false)
 const active_config = ref(false)
 const active_add_page = ref(false)
+const loading = ref(false)
 
 const msg = useMessage()
 const dialog = useDialog()
@@ -233,6 +236,7 @@ const toAddPage = async () => {
   if (!addPageForm.value.name) {
     return msg.error('请填写标识名')
   }
+  loading.value = true
   const res = await (
     await fetch('./api/addPage', {
       headers: new Headers({
@@ -246,22 +250,26 @@ const toAddPage = async () => {
   ).json()
   if (res.code != 200) {
     msg.error(res.msg)
+    loading.value = false
     return
   }
   dataStore.setPageData(res.data)
   const res1 = await dataStore.updatePageList()
   if (res1.code != 200) {
     msg.error(res1.msg)
+    loading.value = false
     return
   }
   msg.success(res1.msg)
   active_add_page.value = false
+  loading.value = false
 }
 
 const toEditPageConfig = async () => {
   if (!pageConfigForm.value.title) {
     return msg.error('请填写标题')
   }
+  loading.value = true
   const res = await (
     await fetch('./api/editPage', {
       headers: new Headers({
@@ -280,9 +288,11 @@ const toEditPageConfig = async () => {
   } else {
     msg.error(res.msg)
   }
+  loading.value = false
 }
 
 const toEditConfig = async () => {
+  loading.value = true
   const res = await (
     await fetch('./api/editConfig', {
       headers: new Headers({
@@ -301,9 +311,11 @@ const toEditConfig = async () => {
   } else {
     msg.error(res.msg)
   }
+  loading.value = false
 }
 
 const toDelPage = async () => {
+  loading.value = true
   const log: boolean = await new Promise((resolve) => {
     dialog.warning({
       title: '删除',
@@ -319,6 +331,7 @@ const toDelPage = async () => {
     })
   })
   if (!log) {
+    loading.value = false
     return
   }
   const res = await (
@@ -335,6 +348,7 @@ const toDelPage = async () => {
   ).json()
   if (res.code != 200) {
     msg.error(res.msg)
+    loading.value = false
     return
   }
 
@@ -342,10 +356,12 @@ const toDelPage = async () => {
   const res1 = await dataStore.updatePageList()
   if (res1.code != 200) {
     msg.error(res1.msg)
+    loading.value = false
     return
   }
   msg.success(res1.msg)
   active_config.value = false
+  loading.value = false
 }
 
 const unSelectTypes = () => {

@@ -76,7 +76,7 @@
         <n-flex justify="end">
           <n-button class="mr-2" @click="showModal = false">取消</n-button>
 
-          <n-button type="primary" @click="toSubmit">确认</n-button>
+          <n-button type="primary" @click="toSubmit" :loading="loading">确认</n-button>
         </n-flex>
       </template>
     </n-card>
@@ -106,6 +106,7 @@ const dataStore = useDataStore()
 const msg = useMessage()
 const selectType = ref(<PageItemTypeType>'text')
 const switchMd = ref(false)
+const loading = ref(false)
 
 const uploadRef = ref<UploadInst | null>(null)
 
@@ -192,6 +193,7 @@ const clearUpload = () => {
 }
 
 const toSubmit = async () => {
+  loading.value = true
   // 修改
   if (props.uuid) {
     const res = await (
@@ -240,6 +242,7 @@ const toSubmit = async () => {
     }
   }
   showModal.value = false
+  loading.value = false
 }
 </script>
 <style scoped></style>
