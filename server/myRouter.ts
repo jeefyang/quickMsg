@@ -7,6 +7,7 @@ import sharp from 'sharp';
 
 const myRouter: Router = Router();
 const listDir = "./data/list";
+const contentDir = "./data/content";
 const configPath = "./data/config.json";
 const filesDir = "./data/files";
 
@@ -16,6 +17,10 @@ if (!fs.existsSync(listDir)) {
 }
 if (!fs.existsSync(filesDir)) {
     fs.mkdirSync(filesDir, { recursive: true });
+}
+
+if (!fs.existsSync(contentDir)) {
+    fs.mkdirSync(contentDir, { recursive: true });
 }
 
 const getConfig = () => {
@@ -55,20 +60,24 @@ myRouter.get('/list', (req, res) => {
     }
     const list = fs.readdirSync(listDir);
     if (list.length == 0) {
-        const json: PageType = {
-            config: {
-                name: "index",
-                title: "首页",
-                uuid: nanoid(32),
-            },
-            list: []
+        const uuid = nanoid(32);
+        const configJson: PageConfigType = {
+
+            name: "index",
+            title: "首页",
+            uuid: uuid
         };
         list.push('index.json');
-        fs.writeFileSync(path.join(listDir, list[0]), JSON.stringify(json));
+        fs.writeFileSync(path.join(listDir, list[0]), JSON.stringify(configJson));
+        const contentJson: PageContentType = {
+            uuid: uuid,
+            list: []
+        };
+        fs.writeFileSync(path.join(contentDir, list[0]), JSON.stringify(contentJson));
     }
     const data = list.map(c => {
-        const json: PageType = JSON.parse(fs.readFileSync(path.join(listDir, c), 'utf-8'));
-        return json.config;
+        const json: PageConfigType = JSON.parse(fs.readFileSync(path.join(listDir, c), 'utf-8'));
+        return json;
     });
     res.json({
         code: 200,
@@ -87,7 +96,7 @@ myRouter.get('/page', (req, res) => {
             data: null
         });
     }
-    const json: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
+    const json: PageContentType = JSON.parse(fs.readFileSync(path.join(contentDir, `${name}.json`), 'utf-8'));
     res.json({
         code: 200,
         msg: "操作成功",
@@ -129,7 +138,7 @@ myRouter.post("/addItem", (req, res) => {
         fs.writeFileSync(path.join(filesDir, newFilename), imageBuffer);
         content = newFilename;
     }
-    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
+    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
     const json: PageItemType = {
         type: type,
         content: content,
@@ -158,7 +167,7 @@ myRouter.post("/editItem", (req, res) => {
             data: null
         });
     }
-    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
+    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
     const index = pageJson.list.findIndex(c => c.uuid == uuid);
     if (index == -1) {
         return res.json({
@@ -198,7 +207,7 @@ myRouter.post("/deleteItem", (req, res) => {
             data: null
         });
     }
-    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
+    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
     const index = pageJson.list.findIndex(c => c.uuid == uuid);
     if (index == -1) {
         return res.json({
@@ -239,8 +248,8 @@ myRouter.post("/editPage", (req, res) => {
             data: null
         });
     }
-    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
-    pageJson.config.title = title;
+    const pageJson: PageConfigType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
+    pageJson.title = title;
     fs.writeFileSync(path.join(listDir, `${name}.json`), JSON.stringify(pageJson));
     res.json({
         code: 200,
@@ -272,19 +281,24 @@ myRouter.post("/addPage", (req, res) => {
             data: null
         });
     }
-    const pageJson: PageType = {
-        config: {
-            title: title,
-            name: name,
-            uuid: nanoid(32),
-        },
-        list: []
+    const uuid = nanoid(32);
+    const configJson: PageConfigType = {
+
+        title: title,
+        name: name,
+        uuid: uuid,
+
     };
-    fs.writeFileSync(path.join(listDir, `${name}.json`), JSON.stringify(pageJson));
+    fs.writeFileSync(path.join(listDir, `${name}.json`), JSON.stringify(configJson));
+    const contentJson: PageContentType = {
+        list: [],
+        uuid: uuid,
+    };
+    fs.writeFileSync(path.join(contentDir, `${name}.json`), JSON.stringify(contentJson));
     res.json({
         code: 200,
         msg: "操作成功",
-        data: pageJson
+        data: contentJson
     });
 });
 
@@ -318,16 +332,17 @@ myRouter.post("/deletePage", (req, res) => {
             data: null
         });
     }
-    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
-    if (pageJson.config.uuid != uuid) {
+    const configJson: PageConfigType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
+    if (configJson.uuid != uuid) {
         return res.json({
             code: 500,
             msg: "匹配不上",
             data: null
         });
     }
-    for (let i = 0; i < pageJson.list.length; i++) {
-        const item = pageJson.list[i];
+    const contentJson: PageContentType = JSON.parse(fs.readFileSync(path.join(contentDir, `${name}.json`), 'utf-8'));
+    for (let i = 0; i < contentJson.list.length; i++) {
+        const item = contentJson.list[i];
         if (item.type != 'image') {
             continue;
         }
@@ -353,7 +368,7 @@ myRouter.post("/toSendWX", async (req, res) => {
             data: null
         });
     }
-    const pageJson: PageType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
+    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(contentDir, `${page}.json`), 'utf-8'));
     const index = pageJson.list.findIndex(c => c.uuid == uuid);
     if (index == -1) {
         return res.json({

@@ -17,9 +17,10 @@ type PageItemType = {
     _switchNoPW?: boolean;
 };
 
-type PageType = {
-    config: PageConfigType;
+
+type PageContentType = {
     list: PageItemType[];
+    uuid: string;
 };
 
 type ConfigType = {
