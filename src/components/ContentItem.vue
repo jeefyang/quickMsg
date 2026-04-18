@@ -170,7 +170,7 @@ const toDel = async (item: PageItemType) => {
     })
   ).json()
   if (res.code == 200) {
-    dataStore.setPageData(res.data)
+    dataStore.setPageData(res.data,"content")
     msg.success(res.msg)
   } else {
     msg.error(res.msg)

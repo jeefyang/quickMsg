@@ -17,6 +17,10 @@ type PageItemType = {
     _switchNoPW?: boolean;
 };
 
+type PageType = {
+    config: PageConfigType,
+    list: PageItemType[]
+}
 
 type PageContentType = {
     list: PageItemType[];

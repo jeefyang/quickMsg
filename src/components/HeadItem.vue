@@ -9,55 +9,33 @@
     <n-flex style="flex: 1; flex-wrap: nowrap" justify="end">
       <!-- 强制刷新按钮 -->
       <n-icon class="mr-2" size="20" @click="toForceUpdate">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          xmlns:xlink="http://www.w3.org/1999/xlink"
-          viewBox="0 0 24 24"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24">
           <path
             d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-            fill="currentColor"
-          ></path>
+            fill="currentColor"></path>
         </svg>
       </n-icon>
       <!-- 添加按钮 -->
       <n-icon class="mr-2" size="20" @click="toActiveAddPage">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          xmlns:xlink="http://www.w3.org/1999/xlink"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M19 19H5V5h9V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9h-2v9z"
-            fill="currentColor"
-          ></path>
-          <path
-            d="M15 13h2v4h-2zm-8-3h2v7H7zm4-3h2v10h-2zm8-2V3h-2v2h-2v2h2v2h2V7h2V5z"
-            fill="currentColor"
-          ></path>
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24">
+          <path d="M19 19H5V5h9V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9h-2v9z" fill="currentColor">
+          </path>
+          <path d="M15 13h2v4h-2zm-8-3h2v7H7zm4-3h2v10h-2zm8-2V3h-2v2h-2v2h2v2h2V7h2V5z" fill="currentColor"></path>
         </svg>
       </n-icon>
       <!-- 设置按钮 -->
       <n-icon class="mr-5" size="20" @click="toActiveConfig">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          xmlns:xlink="http://www.w3.org/1999/xlink"
-          viewBox="0 0 32 32"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32">
           <path
             d="M32 26v-2h-2.101a4.968 4.968 0 0 0-.732-1.753l1.49-1.49l-1.414-1.414l-1.49 1.49A4.968 4.968 0 0 0 26 20.101V18h-2v2.101a4.968 4.968 0 0 0-1.753.732l-1.49-1.49l-1.414 1.414l1.49 1.49A4.968 4.968 0 0 0 20.101 24H18v2h2.101a4.968 4.968 0 0 0 .732 1.753l-1.49 1.49l1.414 1.414l1.49-1.49a4.968 4.968 0 0 0 1.753.732V32h2v-2.101a4.968 4.968 0 0 0 1.753-.732l1.49 1.49l1.414-1.414l-1.49-1.49A4.968 4.968 0 0 0 29.899 26zm-7 2a3 3 0 1 1 3-3a3.003 3.003 0 0 1-3 3z"
-            fill="currentColor"
-          ></path>
+            fill="currentColor"></path>
           <circle cx="7" cy="20" r="2" fill="currentColor"></circle>
-          <path
-            d="M14 20a4 4 0 1 1 4-4a4.012 4.012 0 0 1-4 4zm0-6a2 2 0 1 0 2 2a2.006 2.006 0 0 0-2-2z"
-            fill="currentColor"
-          ></path>
+          <path d="M14 20a4 4 0 1 1 4-4a4.012 4.012 0 0 1-4 4zm0-6a2 2 0 1 0 2 2a2.006 2.006 0 0 0-2-2z"
+            fill="currentColor"></path>
           <circle cx="21" cy="12" r="2" fill="currentColor"></circle>
           <path
             d="M13.02 28.271L3 22.427V9.574l11-6.416l11.496 6.706l1.008-1.728l-12-7a1 1 0 0 0-1.008 0l-12 7A1 1 0 0 0 1 9v14a1 1 0 0 0 .496.864L12.013 30z"
-            fill="currentColor"
-          ></path>
+            fill="currentColor"></path>
         </svg>
       </n-icon>
     </n-flex>
@@ -71,13 +49,8 @@
         </n-form>
         <n-flex>
           <n-button type="primary" @click="toEditPageConfig" :loading="loading">修改</n-button>
-          <n-button
-            type="error"
-            @click="toDelPage"
-            :loading="loading"
-            v-if="dataStore?.pageData?.config?.name != 'index'"
-            >删除</n-button
-          >
+          <n-button type="error" @click="toDelPage" :loading="loading"
+            v-if="dataStore?.pageData?.config?.name != 'index'">删除</n-button>
         </n-flex>
         <n-divider />
         <n-form ref="configRef" :model="configForm">
@@ -111,82 +84,36 @@
     <!-- 页码 -->
     <n-drawer v-model:show="active_page" placement="top">
       <n-drawer-content title="页码">
-        <n-button
-          class="m-2"
-          v-for="item in dataStore.pageList"
-          :key="item.uuid"
-          :type="item.name == dataStore?.pageData?.config?.name ? 'primary' : 'default'"
-          @click="toSelectPage(item)"
-          :loading="loading"
-          >{{ item.title }}</n-button
-        >
+        <n-button class="m-2" v-for="item in dataStore.pageList" :key="item.uuid"
+          :type="item.name == dataStore?.pageData?.config?.name ? 'primary' : 'default'" @click="toSelectPage(item)"
+          :loading="loading">{{ item.title }}</n-button>
       </n-drawer-content>
     </n-drawer>
     <!-- 过滤 -->
     <n-drawer v-model:show="active_filter" placement="top" :height="400">
       <n-drawer-content title="过滤">
-        <n-checkbox-group
-          v-model:value="dataStore.filterData.types"
-          @update:value="dataStore.setFilter()"
-          class="mb-2"
-        >
+        <n-checkbox-group v-model:value="dataStore.filterData.types" @update:value="dataStore.setFilter()" class="mb-2">
           <n-space item-style="display: flex;">
-            <n-checkbox
-              v-for="item in typeList"
-              :key="item.value"
-              :value="item.value"
-              :label="item.name"
-            />
+            <n-checkbox v-for="item in typeList" :key="item.value" :value="item.value" :label="item.name" />
           </n-space>
         </n-checkbox-group>
         <n-flex class="mb-2">
-          <n-button @click="((dataStore.filterData.types = []), dataStore.setFilter())"
-            >全取消</n-button
-          >
+          <n-button @click="((dataStore.filterData.types = []), dataStore.setFilter())">全取消</n-button>
           <n-button type="primary" @click="unSelectTypes">反选</n-button>
           <n-button type="info" @click="toSort">{{
             dataStore.filterData.sort == 1 ? '正序' : '反序'
           }}</n-button>
         </n-flex>
-        <n-input
-          class="mb-2"
-          v-model:value="dataStore.filterData.keyword"
-          placeholder="关键字"
-          @change="dataStore.setFilter()"
-          clearable
-        />
-        <n-date-picker
-          class="mb-2"
-          v-model:value="dataStore.filterData.startUpdateTime"
-          type="datetime"
-          clearable
-          placeholder="修改时间_起始"
-          @update:value="dataStore.setFilter()"
-        />
-        <n-date-picker
-          class="mb-2"
-          v-model:value="dataStore.filterData.endUpdateTime"
-          type="datetime"
-          clearable
-          placeholder="修改时间_终止"
-          @update:value="dataStore.setFilter()"
-        />
-        <n-date-picker
-          class="mb-2"
-          v-model:value="dataStore.filterData.startCreatTime"
-          type="datetime"
-          clearable
-          placeholder="创建时间_起始"
-          @update:value="dataStore.setFilter()"
-        />
-        <n-date-picker
-          class="mb-2"
-          v-model:value="dataStore.filterData.endCreatTime"
-          type="datetime"
-          clearable
-          placeholder="创建时间_终止"
-          @update:value="dataStore.setFilter()"
-        />
+        <n-input class="mb-2" v-model:value="dataStore.filterData.keyword" placeholder="关键字"
+          @change="dataStore.setFilter()" clearable />
+        <n-date-picker class="mb-2" v-model:value="dataStore.filterData.startUpdateTime" type="datetime" clearable
+          placeholder="修改时间_起始" @update:value="dataStore.setFilter()" />
+        <n-date-picker class="mb-2" v-model:value="dataStore.filterData.endUpdateTime" type="datetime" clearable
+          placeholder="修改时间_终止" @update:value="dataStore.setFilter()" />
+        <n-date-picker class="mb-2" v-model:value="dataStore.filterData.startCreatTime" type="datetime" clearable
+          placeholder="创建时间_起始" @update:value="dataStore.setFilter()" />
+        <n-date-picker class="mb-2" v-model:value="dataStore.filterData.endCreatTime" type="datetime" clearable
+          placeholder="创建时间_终止" @update:value="dataStore.setFilter()" />
       </n-drawer-content>
     </n-drawer>
   </n-flex>
@@ -266,7 +193,7 @@ const toAddPage = async () => {
     loading.value = false
     return
   }
-  dataStore.setPageData(res.data)
+  dataStore.setPageData(res.data, 'all')
   const res1 = await dataStore.updatePageList()
   if (res1.code != 200) {
     msg.error(res1.msg)
@@ -295,7 +222,7 @@ const toEditPageConfig = async () => {
     })
   ).json()
   if (res.code == 200) {
-    dataStore.setPageData(res.data)
+    dataStore.setPageData(res.data, 'config')
     msg.success(res.msg)
     active_config.value = false
   } else {
@@ -365,7 +292,7 @@ const toDelPage = async () => {
     return
   }
 
-  dataStore.setPageData(res.data)
+  dataStore.setPageData(res.data, "all")
   const res1 = await dataStore.updatePageList()
   if (res1.code != 200) {
     msg.error(res1.msg)

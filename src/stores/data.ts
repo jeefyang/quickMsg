@@ -38,8 +38,18 @@ export const useDataStore = defineStore('data', () => {
         return `${yy}-${mm}-${dd}_${h}:${m}:${s}`;
     };
 
-    const setPageData = (data: PageType) => {
-        pageData.value = data;
+    const setPageData = (data: PageType | PageConfigType | PageContentType, type: "config" | "content" | "all") => {
+        if (type == "config") {
+            pageData.value.config = (<PageConfigType>data)
+
+        }
+        else if (type == "content") {
+            pageData.value.list = (<PageContentType>data).list
+        }
+        else {
+            pageData.value = <PageType>data;
+
+        }
         setFilter();
     };
 
@@ -95,7 +105,7 @@ export const useDataStore = defineStore('data', () => {
         if (res.code != 200 || !res.data) {
             return res;
         }
-        setPageData(res.data);
+        setPageData(res.data, "all");
         // 获取当前URL参数
         const urlParams = new URLSearchParams(window.location.search);
 

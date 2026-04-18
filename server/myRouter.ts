@@ -6,21 +6,23 @@ import axios from "axios";
 import sharp from 'sharp';
 
 const myRouter: Router = Router();
-const listDir = "./data/list";
-const contentDir = "./data/content";
 const configPath = "./data/config.json";
 const filesDir = "./data/files";
+const pageConfigDir = "./data/page/config"
+const pageContentDir = "./data/page/content"
 
 
-if (!fs.existsSync(listDir)) {
-    fs.mkdirSync(listDir, { recursive: true });
-}
+
 if (!fs.existsSync(filesDir)) {
     fs.mkdirSync(filesDir, { recursive: true });
 }
 
-if (!fs.existsSync(contentDir)) {
-    fs.mkdirSync(contentDir, { recursive: true });
+if (!fs.existsSync(pageConfigDir)) {
+    fs.mkdirSync(pageConfigDir, { recursive: true })
+}
+
+if (!fs.existsSync(pageContentDir)) {
+    fs.mkdirSync(pageContentDir, { recursive: true })
 }
 
 const getConfig = () => {
@@ -30,6 +32,39 @@ const getConfig = () => {
     const config: ConfigType = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     return config;
 };
+
+const getPageContent = (name: string): PageContentType | undefined => {
+    if (!name) {
+        return undefined
+    }
+    const p = path.join(pageContentDir, `${name}.json`)
+    if (!fs.existsSync(p)) {
+        return undefined
+    }
+    return JSON.parse(fs.readFileSync(p, 'utf-8'));
+}
+
+const getPageConfig = (name: string, ext = ".json"): PageConfigType | undefined => {
+    if (!name) {
+        return undefined
+    }
+    const p = path.join(pageConfigDir, `${name}${ext}`)
+    if (!fs.existsSync(p)) {
+        return undefined
+    }
+    return JSON.parse(fs.readFileSync(p, 'utf-8'));
+
+}
+
+const getPage = (name: string) => {
+    const config = getPageConfig(<string>name)!
+    const content = getPageContent(<string>name)!
+    const json: PageType = {
+        config,
+        list: content.list
+    }
+    return json
+}
 
 myRouter.get('/getConfig', (req, res) => {
 
@@ -55,10 +90,8 @@ myRouter.post('/editConfig', (req, res) => {
 
 myRouter.get('/list', (req, res) => {
 
-    if (!fs.existsSync(listDir)) {
-        fs.mkdirSync(listDir, { recursive: true });
-    }
-    const list = fs.readdirSync(listDir);
+
+    const list = fs.readdirSync(pageConfigDir);
     if (list.length == 0) {
         const uuid = nanoid(32);
         const configJson: PageConfigType = {
@@ -68,15 +101,15 @@ myRouter.get('/list', (req, res) => {
             uuid: uuid
         };
         list.push('index.json');
-        fs.writeFileSync(path.join(listDir, list[0]), JSON.stringify(configJson));
+        fs.writeFileSync(path.join(pageConfigDir, list[0]), JSON.stringify(configJson));
         const contentJson: PageContentType = {
             uuid: uuid,
             list: []
         };
-        fs.writeFileSync(path.join(contentDir, list[0]), JSON.stringify(contentJson));
+        fs.writeFileSync(path.join(pageConfigDir, list[0]), JSON.stringify(contentJson));
     }
     const data = list.map(c => {
-        const json: PageConfigType = JSON.parse(fs.readFileSync(path.join(listDir, c), 'utf-8'));
+        const json = getPageConfig(c, "");
         return json;
     });
     res.json({
@@ -88,25 +121,28 @@ myRouter.get('/list', (req, res) => {
 
 myRouter.get('/page', (req, res) => {
     const { name } = req.query;
-    const list = fs.readdirSync(listDir);
-    if (!list.includes(`${name}.json`)) {
+    const configP = path.join(pageConfigDir, `${name}.json`)
+    const contentP = path.join(pageContentDir, `${name}.json`)
+    if (!fs.existsSync(configP) || !fs.existsSync(contentP)) {
         return res.json({
             code: 500,
             msg: "页面不存在",
             data: null
         });
     }
-    const json: PageContentType = JSON.parse(fs.readFileSync(path.join(contentDir, `${name}.json`), 'utf-8'));
+    const json = getPage(<string>name)
     res.json({
         code: 200,
         msg: "操作成功",
         data: json
+
     });
 });
 
 myRouter.post("/addItem", (req, res) => {
     let { type, content, page, isPW, filename }: { type: PageItemTypeType, content: string; page: string, isPW: boolean; filename?: string; } = req.body;
-    if (!page || !fs.existsSync(path.join(listDir, `${page}.json`))) {
+    const pageContent = getPageContent(page)
+    if (!pageContent) {
         return res.json({
             code: 500,
             msg: "页面不存在",
@@ -138,7 +174,6 @@ myRouter.post("/addItem", (req, res) => {
         fs.writeFileSync(path.join(filesDir, newFilename), imageBuffer);
         content = newFilename;
     }
-    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
     const json: PageItemType = {
         type: type,
         content: content,
@@ -147,12 +182,13 @@ myRouter.post("/addItem", (req, res) => {
         uuid: nanoid(32),
         isPW: isPW,
     };
-    pageJson.list.push(json);
-    fs.writeFileSync(path.join(listDir, `${page}.json`), JSON.stringify(pageJson));
+    pageContent.list.push(json);
+    fs.writeFileSync(path.join(pageContentDir, `${page}.json`), JSON.stringify(pageContent));
+
     res.json({
         code: 200,
         msg: "操作成功",
-        data: pageJson
+        data: pageContent
     });
 });
 
@@ -160,15 +196,16 @@ myRouter.post("/addItem", (req, res) => {
 
 myRouter.post("/editItem", (req, res) => {
     const { content, page, uuid, isPW }: { content: string; page: string; uuid: string, isPW: boolean; } = req.body;
-    if (!page || !fs.existsSync(path.join(listDir, `${page}.json`))) {
+    const pageContent = getPageContent(page)
+
+    if (!pageContent) {
         return res.json({
             code: 500,
             msg: "页面不存在",
             data: null
         });
     }
-    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
-    const index = pageJson.list.findIndex(c => c.uuid == uuid);
+    const index = pageContent.list.findIndex(c => c.uuid == uuid);
     if (index == -1) {
         return res.json({
             code: 500,
@@ -176,7 +213,7 @@ myRouter.post("/editItem", (req, res) => {
             data: null
         });
     }
-    const item = pageJson.list[index];
+    const item = pageContent.list[index];
     if (item.type == 'image' && item.content != content) {
         return res.json({
             code: 500,
@@ -184,31 +221,31 @@ myRouter.post("/editItem", (req, res) => {
             data: null
         });
     }
-    pageJson.list[index] = {
-        ...pageJson.list[index],
+    pageContent.list[index] = {
+        ...pageContent.list[index],
         content: content,
         isPW: isPW,
         updateTime: new Date().getTime(),
     };
-    fs.writeFileSync(path.join(listDir, `${page}.json`), JSON.stringify(pageJson));
+    fs.writeFileSync(path.join(pageContentDir, `${page}.json`), JSON.stringify(pageContent));
     res.json({
         code: 200,
         msg: "操作成功",
-        data: pageJson
+        data: pageContent
     });
 });
 
 myRouter.post("/deleteItem", (req, res) => {
     const { page, uuid }: { page: string; uuid: string; } = req.body;
-    if (!page || !fs.existsSync(path.join(listDir, `${page}.json`))) {
+    const pageContent = getPageContent(page)
+    if (!pageContent) {
         return res.json({
             code: 500,
             msg: "页面不存在",
             data: null
         });
     }
-    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(listDir, `${page}.json`), 'utf-8'));
-    const index = pageJson.list.findIndex(c => c.uuid == uuid);
+    const index = pageContent.list.findIndex(c => c.uuid == uuid);
     if (index == -1) {
         return res.json({
             code: 500,
@@ -217,24 +254,26 @@ myRouter.post("/deleteItem", (req, res) => {
         });
     }
     // 图片需要删除
-    if (pageJson.list[index].type == 'image') {
-        const filepath = path.join(filesDir, pageJson.list[index].content);
+    if (pageContent.list[index].type == 'image') {
+        const filepath = path.join(filesDir, pageContent.list[index].content);
         if (fs.existsSync(filepath)) {
             fs.unlinkSync(filepath);
         }
     }
-    pageJson.list.splice(index, 1);
-    fs.writeFileSync(path.join(listDir, `${page}.json`), JSON.stringify(pageJson));
+    pageContent.list.splice(index, 1);
+    fs.writeFileSync(path.join(pageContentDir, `${page}.json`), JSON.stringify(pageContent));
     res.json({
         code: 200,
         msg: "操作成功",
-        data: pageJson
+        data: pageContent
     });
 });
 
 myRouter.post("/editPage", (req, res) => {
     const { name, title }: PageConfigType = req.body;
-    if (!name || !fs.existsSync(path.join(listDir, `${name}.json`))) {
+    const pageConfig = getPageConfig(name)
+
+    if (!pageConfig) {
         return res.json({
             code: 500,
             msg: "页面不存在",
@@ -248,13 +287,12 @@ myRouter.post("/editPage", (req, res) => {
             data: null
         });
     }
-    const pageJson: PageConfigType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
-    pageJson.title = title;
-    fs.writeFileSync(path.join(listDir, `${name}.json`), JSON.stringify(pageJson));
+    pageConfig.title = title;
+    fs.writeFileSync(path.join(pageConfigDir, `${name}.json`), JSON.stringify(pageConfig));
     res.json({
         code: 200,
         msg: "操作成功",
-        data: pageJson
+        data: pageConfig
     });
 });
 
@@ -274,7 +312,7 @@ myRouter.post("/addPage", (req, res) => {
             data: null
         });
     }
-    if (fs.existsSync(path.join(listDir, `${name}.json`))) {
+    if (fs.existsSync(path.join(pageConfigDir, `${name}.json`))) {
         return res.json({
             code: 500,
             msg: "页面已存在",
@@ -282,23 +320,27 @@ myRouter.post("/addPage", (req, res) => {
         });
     }
     const uuid = nanoid(32);
-    const configJson: PageConfigType = {
+    const pageConfig: PageConfigType = {
 
         title: title,
         name: name,
         uuid: uuid,
 
     };
-    fs.writeFileSync(path.join(listDir, `${name}.json`), JSON.stringify(configJson));
-    const contentJson: PageContentType = {
+    fs.writeFileSync(path.join(pageConfigDir, `${name}.json`), JSON.stringify(pageConfig));
+    const pageContent: PageContentType = {
         list: [],
         uuid: uuid,
     };
-    fs.writeFileSync(path.join(contentDir, `${name}.json`), JSON.stringify(contentJson));
+    fs.writeFileSync(path.join(pageContentDir, `${name}.json`), JSON.stringify(pageContent));
+    const json: PageType = {
+        list: [],
+        config: pageConfig
+    }
     res.json({
         code: 200,
         msg: "操作成功",
-        data: contentJson
+        data: json
     });
 });
 
@@ -325,14 +367,14 @@ myRouter.post("/deletePage", (req, res) => {
             data: null
         });
     }
-    if (!fs.existsSync(path.join(listDir, `${name}.json`))) {
+    if (!fs.existsSync(path.join(pageConfigDir, `${name}.json`))) {
         return res.json({
             code: 500,
             msg: "匹配不上",
             data: null
         });
     }
-    const configJson: PageConfigType = JSON.parse(fs.readFileSync(path.join(listDir, `${name}.json`), 'utf-8'));
+    const configJson: PageConfigType = JSON.parse(fs.readFileSync(path.join(pageConfigDir, `${name}.json`), 'utf-8'));
     if (configJson.uuid != uuid) {
         return res.json({
             code: 500,
@@ -340,35 +382,40 @@ myRouter.post("/deletePage", (req, res) => {
             data: null
         });
     }
-    const contentJson: PageContentType = JSON.parse(fs.readFileSync(path.join(contentDir, `${name}.json`), 'utf-8'));
-    for (let i = 0; i < contentJson.list.length; i++) {
-        const item = contentJson.list[i];
-        if (item.type != 'image') {
-            continue;
+    if (fs.existsSync(path.join(pageContentDir, `${name}.json`))) {
+        const contentJson: PageContentType = JSON.parse(fs.readFileSync(path.join(pageContentDir, `${name}.json`), 'utf-8'));
+        for (let i = 0; i < contentJson.list.length; i++) {
+            const item = contentJson.list[i];
+            if (item.type != 'image') {
+                continue;
+            }
+            const p = path.join(filesDir, item.content);
+            if (fs.existsSync(p)) {
+                fs.unlinkSync(p);
+            }
         }
-        const p = path.join(filesDir, item.content);
-        if (fs.existsSync(p)) {
-            fs.unlinkSync(p);
-        }
+        fs.unlinkSync(path.join(pageContentDir, `${name}.json`))
     }
-    fs.unlinkSync(path.join(listDir, `${name}.json`));
+
+    fs.unlinkSync(path.join(pageConfigDir, `${name}.json`));
     return res.json({
         code: 200,
         msg: "操作成功",
-        data: JSON.parse(fs.readFileSync(path.join(listDir, `index.json`), 'utf-8'))
+        data: getPage("index")
     });
 });
 
 myRouter.post("/toSendWX", async (req, res) => {
     const { page, uuid }: { page: string; uuid: string; } = req.body;
-    if (!page || !fs.existsSync(path.join(listDir, `${page}.json`))) {
+    const pageJson = getPageContent(page)
+    if (!pageJson) {
         return res.json({
             code: 500,
             msg: "页面不存在",
             data: null
         });
     }
-    const pageJson: PageContentType = JSON.parse(fs.readFileSync(path.join(contentDir, `${page}.json`), 'utf-8'));
+
     const index = pageJson.list.findIndex(c => c.uuid == uuid);
     if (index == -1) {
         return res.json({
