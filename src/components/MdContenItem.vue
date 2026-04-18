@@ -1,6 +1,8 @@
 <template>
+
   <div style="overflow: auto; scrollbar-width: none" :style="{ maxHeight: props.maxHeight }">
-    <MdPreview class="p-2" v-model="props.content" theme="dark" previewTheme="github" />
+    <div>123</div>
+    <MdPreview class="p-2" v-model="props.content" theme="dark" previewTheme="atom" :codeFoldable="false"/>
   </div>
 </template>
 

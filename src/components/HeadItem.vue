@@ -40,7 +40,7 @@
       </n-icon>
     </n-flex>
     <!-- 设置 -->
-    <n-drawer v-model:show="active_config" placement="top" height="600">
+    <n-drawer v-model:show="active_config" placement="top" height="600" :z-index="999999" >
       <n-drawer-content title="设置">
         <n-form ref="pageConfigRef" :model="pageConfigForm">
           <n-form-item path="title" label="标题">
@@ -67,7 +67,7 @@
     </n-drawer>
 
     <!-- 添加 -->
-    <n-drawer v-model:show="active_add_page" placement="top" height="600">
+    <n-drawer v-model:show="active_add_page" placement="top" height="600" :z-index="999999">
       <n-drawer-content title="添加页面">
         <n-form ref="pageConfigRef" :model="pageConfigForm">
           <n-form-item path="title" label="标题">
@@ -82,7 +82,7 @@
       </n-drawer-content>
     </n-drawer>
     <!-- 页码 -->
-    <n-drawer v-model:show="active_page" placement="top">
+    <n-drawer v-model:show="active_page" placement="top" :z-index="999999">
       <n-drawer-content title="页码">
         <n-button class="m-2" v-for="item in dataStore.pageList" :key="item.uuid"
           :type="item.name == dataStore?.pageData?.config?.name ? 'primary' : 'default'" @click="toSelectPage(item)"
@@ -90,7 +90,7 @@
       </n-drawer-content>
     </n-drawer>
     <!-- 过滤 -->
-    <n-drawer v-model:show="active_filter" placement="top" :height="400">
+    <n-drawer v-model:show="active_filter" placement="top" :height="400" :z-index="999999">
       <n-drawer-content title="过滤">
         <n-checkbox-group v-model:value="dataStore.filterData.types" @update:value="dataStore.setFilter()" class="mb-2">
           <n-space item-style="display: flex;">

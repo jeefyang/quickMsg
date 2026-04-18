@@ -1,5 +1,5 @@
 <template>
-  <n-modal v-model:show="showModal">
+  <n-modal v-model:show="showModal" :z-index="999999">
     <n-card size="huge" aria-modal="true" bordered v-if="!switchMd">
       <n-flex style="width: 100%" justify="center" class="mb-4" v-if="!props.uuid">
         <n-radio-group v-model:value="selectType" @update:value="toChangeSelect">
