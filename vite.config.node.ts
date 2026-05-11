@@ -3,6 +3,25 @@ import { VitePluginNode } from 'vite-plugin-node';
 import path from "path";
 import fs from "fs";
 
+const initFileList: { path: string, examplePath: string; }[] = [
+    { path: "ecosystem.config.cjs", examplePath: "ecosystem.config.example.cjs" },
+];
+
+for (const item of initFileList) {
+    if (!fs.existsSync(item.path)) {
+        fs.writeFileSync(item.path, fs.readFileSync(item.examplePath));
+    }
+}
+
+const dirList = ["logs"];
+
+for (let dir of dirList) {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+}
+
 const pm2ExamplePath = 'ecosystem.config.example.cjs';
 const pm2Path = 'ecosystem.config.cjs';
 if (!fs.existsSync(pm2Path)) {
