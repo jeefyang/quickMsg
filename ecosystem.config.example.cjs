@@ -5,7 +5,7 @@ module.exports = {
             name: "quickMsg",
             script: "./dist/server/index.cjs", // 你的入口文件
             env: {
-                SERVER_PORT: 6000,
+                SERVER_PORT: 6002,
                 NODE_ENV: "production"
             },
             instances: 1, // 单实例或集群均可
