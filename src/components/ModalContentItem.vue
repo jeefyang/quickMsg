@@ -1,5 +1,5 @@
 <template>
-  <n-modal v-model:show="showModal" :z-index="999999">
+  <n-modal v-model:show="showModal" :z-index="9">
     <n-card size="huge" aria-modal="true" bordered v-if="!switchMd">
       <n-flex style="width: 100%" justify="center" class="mb-4" v-if="!props.uuid">
         <n-radio-group v-model:value="selectType" @update:value="toChangeSelect">
@@ -15,16 +15,31 @@
       <template v-if="selectType == 'text'">
         <n-input
           class="mb-2"
-          v-model:value="content"
+          v-model:value="formData.content"
           type="textarea"
           placeholder="请填写速记信息"
           style="min-height: 20vh"
         />
       </template>
+      <!-- 代码 -->
+      <template v-if="selectType == 'code'">
+        <code-item
+          v-model:content="formData.content!"
+          v-model:lang="formData.codeLang"
+          editable
+          can-switch-lang
+        ></code-item>
+      </template>
       <!-- 图片 -->
       <template v-if="selectType == 'image'">
         <n-flex vertical v-if="!props.uuid">
-          <n-upload multiple :max="1" @change="toChangeUpload" ref="uploadRef" v-if="!content">
+          <n-upload
+            multiple
+            :max="1"
+            @change="toChangeUpload"
+            ref="uploadRef"
+            v-if="!formData.content"
+          >
             <n-upload-dragger>
               <div style="margin-bottom: 12px">
                 <n-icon size="48" :depth="3">
@@ -45,13 +60,13 @@
           </n-upload>
           <n-flex vertical align="center" v-else>
             <div style="width: 100%; max-height: 30vh; overflow: auto">
-              <n-image :src="content" width="100%"></n-image>
+              <n-image :src="formData.content" width="100%"></n-image>
             </div>
             <n-button type="error" @click="clearUpload">清除</n-button>
           </n-flex>
         </n-flex>
         <n-flex justify="center" v-else>
-          <n-image :src="`api/files/${content}`" width="100%"></n-image>
+          <n-image :src="`api/files/${formData.content}`" width="100%"></n-image>
         </n-flex>
       </template>
       <!-- markdown -->
@@ -59,7 +74,7 @@
         <n-flex vertical align="center">
           <n-input
             class="mb-2"
-            v-model:value="content"
+            v-model:value="formData.content"
             type="textarea"
             placeholder="请填写markdown"
             style="min-height: 30vh"
@@ -68,9 +83,23 @@
         </n-flex>
       </template>
       <n-divider />
-      <n-switch v-model:value="isPW">
-        <template #checked> 密码 </template>
+      <n-select
+        v-model:value="formData.tags"
+        filterable
+        multiple
+        tag
+        :options="dataStore.tagList"
+        clearable
+        class="mb-2"
+        placeholder="请选择标签,可自创,可多选"
+      />
+      <n-switch v-model:value="formData.isSecret" class="mr-2">
+        <template #checked> 密文 </template>
         <template #unchecked> 明文 </template>
+      </n-switch>
+      <n-switch v-model:value="formData.isContentFile" v-if="selectType != 'image' && !props.uuid">
+        <template #checked> 存储为文件 </template>
+        <template #unchecked> 存储为文本 </template>
       </n-switch>
       <template #footer>
         <n-flex justify="end">
@@ -82,7 +111,7 @@
     </n-card>
     <n-card v-else>
       <n-flex vertical justify="center">
-        <md-conten-item :content="content"></md-conten-item>
+        <md-conten-item :content="formData.content"></md-conten-item>
         <n-button class="mb-3" type="primary" @click="switchMd = false">返回</n-button>
       </n-flex>
     </n-card>
@@ -91,17 +120,24 @@
 <script setup lang="ts">
 import { useDataStore } from '@/stores/data'
 import { useMessage, type UploadFileInfo, type UploadInst } from 'naive-ui'
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import MdContenItem from './MdContenItem.vue'
+import CodeItem from './CodeItem.vue'
 
 const props = defineProps<{
   show: boolean
   uuid?: string
 }>()
 const emits = defineEmits(['update:show'])
-const content = ref('')
-let filename = ''
-const isPW = ref(false)
+
+const formData = reactive<Partial<PageItemEditType>>({
+  content: '',
+  isSecret: false,
+  codeLang: 'javascript',
+  filename: '',
+  isContentFile: false,
+  tags: [],
+})
 const dataStore = useDataStore()
 const msg = useMessage()
 const selectType = ref(<PageItemTypeType>'text')
@@ -114,6 +150,7 @@ const selectList: { label: string; val: PageItemTypeType }[] = [
   { label: '文本', val: 'text' },
   { label: '图片', val: 'image' },
   { label: 'markdown', val: 'markdown' },
+  { label: '代码', val: 'code' },
 ]
 
 const showModal = computed({
@@ -130,19 +167,23 @@ watch(
     if (props.uuid) {
       const item = dataStore.itemList.find((item) => item.uuid === props.uuid)
       if (item) {
-        console.log(item)
-        isPW.value = !!item.isPW
-        content.value = item.content
+        formData.isSecret = !!item.isSecret
+        formData.isContentFile = !!item.isContentFile
+        formData.content = item.content
+        formData.tags = [...(item.tags || [])]
         selectType.value = item.type
         return
       }
     }
-    content.value = ''
+    formData.isSecret = !!dataStore.pageData.config.defaultSecret
+    formData.isContentFile = !!dataStore.pageData.config.defaultContentFile
+    formData.content = ''
+    formData.tags = []
   },
 )
 
 const toChangeSelect = () => {
-  content.value = ''
+  formData.content = ''
   switchMd.value = false
   if (uploadRef.value) {
     uploadRef.value.clear()
@@ -179,17 +220,17 @@ const toChangeUpload = async (options: {
     msg.error('请选择图片')
     return
   }
-  filename = target.name
+  formData.filename = target.name
   const file = options.file.file!
-  content.value = await fileToBase64(file)
+  formData.content = await fileToBase64(file)
 }
 
 const clearUpload = () => {
   if (uploadRef.value) {
     uploadRef.value.clear()
   }
-  content.value = ''
-  filename = ''
+  formData.content = ''
+  formData.filename = ''
 }
 
 const toSubmit = async () => {
@@ -202,19 +243,25 @@ const toSubmit = async () => {
           'Content-Type': 'application/json',
         }),
         method: 'POST',
-        body: JSON.stringify({
+        body: JSON.stringify(<PageItemEditType>{
           uuid: props.uuid,
-          content: content.value,
+          content: formData.content,
           page: dataStore.pageData.config.name,
-          isPW: isPW.value,
+          isSecret: formData.isSecret,
+          secondCode: dataStore.getSecondCode(),
+          codeLang: formData.codeLang,
+          isContentFile: formData.isContentFile,
+          tags: formData.tags,
         }),
       })
     ).json()
     if (res.code == 200) {
-      dataStore.setPageData(res.data,'content')
+      dataStore.setPageData(res.data, 'content')
       msg.success(res.msg)
     } else {
       msg.error(res.msg)
+      loading.value = false
+      return
     }
   }
   // 新增
@@ -225,20 +272,26 @@ const toSubmit = async () => {
           'Content-Type': 'application/json',
         }),
         method: 'POST',
-        body: JSON.stringify({
+        body: JSON.stringify(<PageItemEditType>{
           type: selectType.value,
-          content: content.value,
+          content: formData.content,
           page: dataStore.pageData.config.name,
-          isPW: isPW.value,
-          filename: filename,
+          isSecret: formData.isSecret,
+          secondCode: dataStore.getSecondCode(),
+          filename: formData.filename,
+          codeLang: formData.codeLang,
+          isContentFile: formData.isContentFile,
+          tags: formData.tags,
         }),
       })
     ).json()
     if (res.code == 200) {
-      dataStore.setPageData(res.data,'content')
+      dataStore.setPageData(res.data, 'content')
       msg.success(res.msg)
     } else {
       msg.error(res.msg)
+      loading.value = false
+      return
     }
   }
   showModal.value = false

@@ -1,10 +1,10 @@
 <template>
   <n-flex vertical>
     <n-flex vertical class="ml-3 mr-3 mb-4" v-for="item in dataStore.itemList" :key="item.uuid">
-      <n-card bordered @click="item._switchNoPW = !item._switchNoPW">
+      <n-card bordered @click="item._switchNoSecret = !item._switchNoSecret">
         <!-- 文本 -->
         <template v-if="item.type == 'text'">
-          <div v-if="item.isPW && !item._switchNoPW">
+          <div v-if="item.isSecret && !item._switchNoSecret">
             {{
               item.content
                 .split(/./)
@@ -18,7 +18,7 @@
         <!-- 图片 -->
         <template v-if="item.type == 'image'">
           <n-flex width="100%" justify="center">
-            <n-icon v-if="item.isPW && !item._switchNoPW" size="80">
+            <n-icon v-if="item.isSecret && !item._switchNoSecret" size="80">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -38,31 +38,20 @@
             ></n-image>
           </n-flex>
         </template>
+        <!-- md -->
         <template v-if="item.type == 'markdown'">
-          <n-flex width="100%" justify="center" v-if="item.isPW && !item._switchNoPW">
-            <n-icon size="80">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink"
-                viewBox="0 0 32 32"
-              >
-                <path
-                  d="M17.713 13.471l1.863-6.953L17.645 6l-1.565 5.838l1.633 1.633z"
-                  fill="currentColor"
-                ></path>
-                <path
-                  d="M24.207 19.965l1.414 1.414L31 16l-7-7l-1.414 1.414L28.172 16l-3.965 3.965z"
-                  fill="currentColor"
-                ></path>
-                <path
-                  d="M30 28.586L3.414 2L2 3.414l5.793 5.793L1 16l7 7l1.414-1.414L3.828 16l5.379-5.379l5.677 5.677l-2.461 9.184l1.932.518l2.162-8.069L28.586 30L30 28.586z"
-                  fill="currentColor"
-                ></path>
-              </svg>
-            </n-icon>
+          <n-flex width="100%" justify="center" v-if="item.isSecret && !item._switchNoSecret">
+            <SecretItem></SecretItem>
           </n-flex>
 
           <MdContenItem :content="item.content" v-else></MdContenItem>
+        </template>
+        <!-- 代码 -->
+        <template v-if="item.type == 'code'">
+          <n-flex width="100%" justify="center" v-if="item.isSecret && !item._switchNoSecret">
+            <SecretItem></SecretItem>
+          </n-flex>
+          <CodeItem :content="item.content" :lang="item.codeLang" v-else></CodeItem>
         </template>
       </n-card>
       <!-- 按钮 -->
@@ -82,7 +71,7 @@
             >删除</n-button
           >
         </n-flex>
-        <div style="font-size: 12px">{{ dataStore.getDateFn(item.updateTime) }}</div>
+        <div style="font-size: 12px">{{ dataStore.getDateFn(item.updateTime!) }}</div>
       </n-flex>
     </n-flex>
     <ModalContentItem v-model:show="showModal" :uuid="editUUid"></ModalContentItem>
@@ -94,6 +83,8 @@ import { useDialog, useMessage } from 'naive-ui'
 import ModalContentItem from './ModalContentItem.vue'
 import { ref } from 'vue'
 import MdContenItem from './MdContenItem.vue'
+import SecretItem from './SecretItem.vue'
+import CodeItem from './CodeItem.vue'
 
 const dataStore = useDataStore()
 const msg = useMessage()
@@ -166,11 +157,12 @@ const toDel = async (item: PageItemType) => {
       body: JSON.stringify({
         uuid: item.uuid,
         page: dataStore.pageData.config.name,
+        secondCode: dataStore.getSecondCode(),
       }),
     })
   ).json()
   if (res.code == 200) {
-    dataStore.setPageData(res.data,"content")
+    dataStore.setPageData(res.data, 'content')
     msg.success(res.msg)
   } else {
     msg.error(res.msg)

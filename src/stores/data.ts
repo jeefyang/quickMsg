@@ -5,16 +5,23 @@ import { defineStore } from 'pinia';
 export const useDataStore = defineStore('data', () => {
 
     const isInit = ref(false);
+    const isEmpty = ref(false);
     const pageList = ref(<PageConfigType[]>[]);
 
     const config = ref(<ConfigType>{});
 
-    const pageData = ref(<PageType>{
-        list: [], config: { name: "", title: "", uuid: "" }
+    const pageData = ref(<pageCacheType>{
+        list: [], config: { name: "", title: "", uuid: "", secondCode: "" }
     });
+    const cacheContent: Record<string, {
+        content: string;
+        updateTime: number;
+    }> = {};
+
+    const tagList = ref<{ label: string, value: string; }[]>([]);
 
 
-    const itemList = ref(<PageItemType[]>[]);
+    const itemList = ref(<PageItemCacheType[]>[]);
 
     const filterData = ref({
         types: <PageItemTypeType[]>[],
@@ -24,6 +31,7 @@ export const useDataStore = defineStore('data', () => {
         endUpdateTime: <number | null>null,
         startCreatTime: <number | null>null,
         endCreatTime: <number | null>null,
+        tags: <string[]>[],
     });
 
 
@@ -38,19 +46,61 @@ export const useDataStore = defineStore('data', () => {
         return `${yy}-${mm}-${dd}_${h}:${m}:${s}`;
     };
 
-    const setPageData = (data: PageType | PageConfigType | PageContentType, type: "config" | "content" | "all") => {
+    const updateContentList = async () => {
+        if (!pageData.value.list) {
+            return;
+        }
+        const list: PageItemCacheType[] = [];
+        for (let i = 0; i < pageData.value.list.length; i++) {
+            const item = pageData.value.list[i];
+            if (item?.tags) {
+                for (let j = 0; j < item.tags.length; j++) {
+                    const tag = item.tags[j];
+                    if (!tagList.value.some(item => item.value == tag)) {
+                        tagList.value.push({ label: tag!, value: tag! });
+                    }
+                }
+            }
+            if (item?.type == "image" || !item?.isContentFile) {
+                continue;
+            }
+            if (!item._contentFileUrl) {
+                item._contentFileUrl = `api/files/${item.content}`;
+            }
+            item.content = "";
+            list.push(item);
+        }
+        for (let i = 0; i < list.length; i++) {
+            const item = list[i]!;
+            if (cacheContent[item.uuid]?.updateTime == item.updateTime) {
+                item.content = cacheContent[item.uuid]?.content || "";
+                continue;
+            }
+            const res = await fetch(item._contentFileUrl!);
+            item.content = await res.text();
+            cacheContent[item.uuid] = {
+                content: item.content,
+                updateTime: item.updateTime
+            };
+        }
+    };
+
+    const setPageData = (data: pageCacheType | PageConfigType | PageContentType, type: "config" | "content" | "all") => {
         if (type == "config") {
-            pageData.value.config = (<PageConfigType>data)
+            pageData.value.config = (<PageConfigType>data);
 
         }
         else if (type == "content") {
-            pageData.value.list = (<PageContentType>data).list
+            pageData.value.list = (<PageContentType>data).list;
+            updateContentList();
         }
         else {
-            pageData.value = <PageType>data;
+            pageData.value = <pageCacheType>data;
+            updateContentList();
 
         }
         setFilter();
+
     };
 
     const setFilter = () => {
@@ -62,6 +112,14 @@ export const useDataStore = defineStore('data', () => {
             }
             if (filterData.value.keyword && !item.content.includes(filterData.value.keyword)) {
                 return false;
+            }
+            if (filterData.value.tags && filterData.value.tags.length > 0) {
+                if (!item.tags) {
+                    return false;
+                }
+                if (!item.tags.some(tag => filterData.value.tags.includes(tag))) {
+                    return false;
+                }
             }
             if (filterData.value.startUpdateTime) {
                 if (item.updateTime < filterData.value.startUpdateTime) {
@@ -100,8 +158,8 @@ export const useDataStore = defineStore('data', () => {
         return res;
     };
 
-    const updatePageData = async (name?: string) => {
-        const res = await (await fetch(`./api/page?name=${name || pageData.value.config.name}`)).json();
+    const updatePageData = async (name?: string, secondCode?: string) => {
+        const res = await (await fetch(`./api/page?name=${name || pageData.value.config.name}&secondCode=${secondCode || ""}`)).json();
         if (res.code != 200 || !res.data) {
             return res;
         }
@@ -110,16 +168,18 @@ export const useDataStore = defineStore('data', () => {
         const urlParams = new URLSearchParams(window.location.search);
 
         // 更新特定参数
-        urlParams.set('pageName', pageData.value.config.name);
+        urlParams.set('pageName', pageData.value.config.name!);
+        urlParams.set('secondCode', secondCode || "");
 
         // 替换当前状态
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
-        history.replaceState({ pageName: pageData.value.config.name }, '', newUrl);
+        history.replaceState({ pageName: pageData.value.config.name, secondCode: secondCode || "" }, '', newUrl);
         return res;
     };
 
     const updateConfig = async () => {
-        const res = await (await fetch('./api/getConfig')).json();
+
+        const res = await (await fetch(`./api/getConfig?page=${getPageName()}&secondCode=${getSecondCode()}`)).json();
         if (res.code != 200 || !res.data) {
             return res;
         }
@@ -127,5 +187,13 @@ export const useDataStore = defineStore('data', () => {
         return res;
     };
 
-    return { isInit, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter, config, updatePageList, updatePageData, updateConfig };
+    const getSecondCode = () => {
+        return new URLSearchParams(window.location.search).get('secondCode') || '';
+    };
+
+    const getPageName = () => {
+        return new URLSearchParams(window.location.search).get('pageName') || 'index';
+    };
+
+    return { isInit, isEmpty, pageList, pageData, getDateFn, itemList, setPageData, filterData, setFilter, config, updatePageList, updatePageData, updateConfig, getSecondCode, getPageName, tagList };
 });

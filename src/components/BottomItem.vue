@@ -1,5 +1,5 @@
 <template>
-  <n-flex justify="start" class="mb-12 ml-5" @click="toAdd">
+  <div class="bottom" @click="toAdd">
     <n-icon-wrapper :size="40" :border-radius="20">
       <n-icon size="50">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
@@ -9,7 +9,7 @@
         </svg>
       </n-icon>
     </n-icon-wrapper>
-  </n-flex>
+  </div>
   <ModalContentItem v-model:show="showModal"></ModalContentItem>
 </template>
 <script setup lang="ts">
@@ -24,4 +24,10 @@ const toAdd = () => {
   showModal.value = true
 }
 </script>
-<style scoped></style>
+<style scoped>
+.bottom {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+}
+</style>

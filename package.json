@@ -25,6 +25,7 @@
         "express": "^5.2.1",
         "helmet": "^8.1.0",
         "md-editor-v3": "^6.4.2",
+        "microlighter": "^2.1.0",
         "multer": "^2.1.1",
         "nanoid": "^5.1.7",
         "pinia": "^3.0.4",
@@ -51,7 +52,7 @@
         "unplugin-auto-import": "^21.0.0",
         "unplugin-vue-components": "^32.0.0",
         "vfonts": "^0.0.3",
-        "vite": "^8.0.3",
+        "vite": "^8.2.2",
         "vite-plugin-vue-devtools": "^8.1.1",
         "vue-tsc": "^3.2.6"
     },

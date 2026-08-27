@@ -8,8 +8,8 @@ import sharp from 'sharp';
 const myRouter: Router = Router();
 const configPath = "./data/config.json";
 const filesDir = "./data/files";
-const pageConfigDir = "./data/page/config"
-const pageContentDir = "./data/page/content"
+const pageConfigDir = "./data/page/config";
+const pageContentDir = "./data/page/content";
 
 
 
@@ -18,11 +18,11 @@ if (!fs.existsSync(filesDir)) {
 }
 
 if (!fs.existsSync(pageConfigDir)) {
-    fs.mkdirSync(pageConfigDir, { recursive: true })
+    fs.mkdirSync(pageConfigDir, { recursive: true });
 }
 
 if (!fs.existsSync(pageContentDir)) {
-    fs.mkdirSync(pageContentDir, { recursive: true })
+    fs.mkdirSync(pageContentDir, { recursive: true });
 }
 
 const getConfig = () => {
@@ -35,39 +35,52 @@ const getConfig = () => {
 
 const getPageContent = (name: string): PageContentType | undefined => {
     if (!name) {
-        return undefined
+        return undefined;
     }
-    const p = path.join(pageContentDir, `${name}.json`)
+    const p = path.join(pageContentDir, `${name}.json`);
     if (!fs.existsSync(p)) {
-        return undefined
+        return undefined;
     }
     return JSON.parse(fs.readFileSync(p, 'utf-8'));
-}
+};
 
 const getPageConfig = (name: string, ext = ".json"): PageConfigType | undefined => {
     if (!name) {
-        return undefined
+        return undefined;
     }
-    const p = path.join(pageConfigDir, `${name}${ext}`)
+    const p = path.join(pageConfigDir, `${name}${ext}`);
     if (!fs.existsSync(p)) {
-        return undefined
+        return undefined;
     }
     return JSON.parse(fs.readFileSync(p, 'utf-8'));
 
-}
+};
 
 const getPage = (name: string) => {
-    const config = getPageConfig(<string>name)!
-    const content = getPageContent(<string>name)!
+    const config = getPageConfig(<string>name)!;
+    const content = getPageContent(<string>name)!;
     const json: PageType = {
         config,
         list: content.list
-    }
-    return json
-}
+    };
+    return json;
+};
 
 myRouter.get('/getConfig', (req, res) => {
-
+    const query: Partial<ConfigType> = req.query;
+    if (!query.page) {
+        return res.json({
+            code: 500,
+            msg: "缺少参数",
+        });
+    }
+    const indexPage = getPageConfig(query.page!);
+    if (!indexPage || (indexPage.secondCode || "") != query.secondCode) {
+        return res.json({
+            code: 500,
+            msg: "参数错误",
+        });
+    }
     const config = getConfig();
     return res.json({
         code: 200,
@@ -78,6 +91,20 @@ myRouter.get('/getConfig', (req, res) => {
 
 myRouter.post('/editConfig', (req, res) => {
     const body: Partial<ConfigType> = req.body;
+    /** 仅index页面可以修改 */
+    if (!body.page || body.page != 'index') {
+        return res.json({
+            code: 500,
+            msg: "缺少参数",
+        });
+    }
+    const indexPage = getPageConfig(body.page!);
+    if (!indexPage || (indexPage.secondCode || "") != body.secondCode) {
+        return res.json({
+            code: 500,
+            msg: "参数错误",
+        });
+    }
     let config = getConfig();
     config = { ...config, ...body };
     fs.writeFileSync(configPath, JSON.stringify(config));
@@ -106,10 +133,13 @@ myRouter.get('/list', (req, res) => {
             uuid: uuid,
             list: []
         };
-        fs.writeFileSync(path.join(pageConfigDir, list[0]), JSON.stringify(contentJson));
+        fs.writeFileSync(path.join(pageContentDir, list[0]), JSON.stringify(contentJson));
     }
     const data = list.map(c => {
         const json = getPageConfig(c, "");
+        if (json) {
+            delete json.secondCode;
+        }
         return json;
     });
     res.json({
@@ -120,9 +150,9 @@ myRouter.get('/list', (req, res) => {
 });
 
 myRouter.get('/page', (req, res) => {
-    const { name } = req.query;
-    const configP = path.join(pageConfigDir, `${name}.json`)
-    const contentP = path.join(pageContentDir, `${name}.json`)
+    const { name, secondCode } = req.query;
+    const configP = path.join(pageConfigDir, `${name}.json`);
+    const contentP = path.join(pageContentDir, `${name}.json`);
     if (!fs.existsSync(configP) || !fs.existsSync(contentP)) {
         return res.json({
             code: 500,
@@ -130,7 +160,15 @@ myRouter.get('/page', (req, res) => {
             data: null
         });
     }
-    const json = getPage(<string>name)
+    const config = getPageConfig(<string>name);
+    if (!config || (config.secondCode || '') != secondCode) {
+        return res.json({
+            code: 500,
+            msg: "页面不存在",
+            data: null
+        });
+    }
+    const json = getPage(<string>name);
     res.json({
         code: 200,
         msg: "操作成功",
@@ -140,8 +178,16 @@ myRouter.get('/page', (req, res) => {
 });
 
 myRouter.post("/addItem", (req, res) => {
-    let { type, content, page, isPW, filename }: { type: PageItemTypeType, content: string; page: string, isPW: boolean; filename?: string; } = req.body;
-    const pageContent = getPageContent(page)
+    const body: PageItemEditType = { ...req.body };
+
+    const pageConfig = getPageConfig(body.page);
+    if (!pageConfig || (pageConfig.secondCode || '') != body.secondCode) {
+        return res.json({
+            code: 500,
+            msg: "页面不存在",
+        });
+    }
+    const pageContent = getPageContent(body.page);
     if (!pageContent) {
         return res.json({
             code: 500,
@@ -149,41 +195,52 @@ myRouter.post("/addItem", (req, res) => {
             data: null
         });
     }
-    if (!content) {
+    if (!body.content || (body.type == 'code' && !body.codeLang)) {
         return res.json({
             code: 500,
             msg: "内容缺失",
             data: null
         });
     }
-    if (type == 'image') {
-        if (!filename) {
+    const uuid = nanoid(32);
+    if (body.type == 'image') {
+        if (!body.filename) {
             return res.json({
                 code: 500,
                 msg: "文件名缺失",
                 data: null
             });
         }
-        const ext = path.extname(filename);
+        const ext = path.extname(body.filename);
         const newFilename = `${nanoid(32)}${ext}`;
         // 1. 去除前缀 (使用正则匹配 data:image/xxx;base64,)
-        const base64String = content.replace(/^data:image\/\w+;base64,/, '');
+        const base64String = body.filename.replace(/^data:image\/\w+;base64,/, '');
 
         // 2. 将 Base64 字符串转换为 Buffer
         const imageBuffer = Buffer.from(base64String, 'base64');
         fs.writeFileSync(path.join(filesDir, newFilename), imageBuffer);
-        content = newFilename;
+        body.content = newFilename;
+    }
+    else if (body.isContentFile) {
+        const content = body.content;
+        const filename = `${body.page}_${nanoid(32)}.txt`;
+        fs.writeFileSync(path.join(filesDir, filename), content);
+        body.content = filename;
     }
     const json: PageItemType = {
-        type: type,
-        content: content,
+        type: body.type,
+        content: body.content,
         createTime: new Date().getTime(),
         updateTime: new Date().getTime(),
-        uuid: nanoid(32),
-        isPW: isPW,
+        uuid,
+        isSecret: body.isSecret,
+        codeLang: body.type == "code" ? body.codeLang : undefined,
+        isContentFile: body.isContentFile,
+        tags: body.tags || []
+
     };
     pageContent.list.push(json);
-    fs.writeFileSync(path.join(pageContentDir, `${page}.json`), JSON.stringify(pageContent));
+    fs.writeFileSync(path.join(pageContentDir, `${body.page}.json`), JSON.stringify(pageContent));
 
     res.json({
         code: 200,
@@ -195,8 +252,17 @@ myRouter.post("/addItem", (req, res) => {
 
 
 myRouter.post("/editItem", (req, res) => {
-    const { content, page, uuid, isPW }: { content: string; page: string; uuid: string, isPW: boolean; } = req.body;
-    const pageContent = getPageContent(page)
+    const body: PageItemEditType = { ...req.body };
+
+
+    const pageConfig = getPageConfig(body.page);
+    if (!pageConfig || (pageConfig.secondCode || "") != body.secondCode) {
+        return res.json({
+            code: 500,
+            msg: "页面不存在",
+        });
+    }
+    const pageContent = getPageContent(body.page);
 
     if (!pageContent) {
         return res.json({
@@ -205,7 +271,7 @@ myRouter.post("/editItem", (req, res) => {
             data: null
         });
     }
-    const index = pageContent.list.findIndex(c => c.uuid == uuid);
+    const index = pageContent.list.findIndex(c => c.uuid == body.uuid);
     if (index == -1) {
         return res.json({
             code: 500,
@@ -214,20 +280,26 @@ myRouter.post("/editItem", (req, res) => {
         });
     }
     const item = pageContent.list[index];
-    if (item.type == 'image' && item.content != content) {
+    if (item.type == 'image' && item.content != body.content) {
         return res.json({
             code: 500,
             msg: "图片不允许修改",
             data: null
         });
     }
+    if (item.isContentFile) {
+        fs.writeFileSync(path.join(filesDir, item.content), body.content);
+        body.content = item.content;
+    }
     pageContent.list[index] = {
         ...pageContent.list[index],
-        content: content,
-        isPW: isPW,
+        content: body.content,
+        isSecret: body.isSecret,
         updateTime: new Date().getTime(),
+        codeLang: body.codeLang,
+        tags: body.tags || pageContent.list[index].tags || []
     };
-    fs.writeFileSync(path.join(pageContentDir, `${page}.json`), JSON.stringify(pageContent));
+    fs.writeFileSync(path.join(pageContentDir, `${body.page}.json`), JSON.stringify(pageContent));
     res.json({
         code: 200,
         msg: "操作成功",
@@ -236,8 +308,16 @@ myRouter.post("/editItem", (req, res) => {
 });
 
 myRouter.post("/deleteItem", (req, res) => {
-    const { page, uuid }: { page: string; uuid: string; } = req.body;
-    const pageContent = getPageContent(page)
+    const body: PageItemEditType = { ...req.body };
+
+    const pageConfig = getPageConfig(body.page);
+    if (!pageConfig || (pageConfig.secondCode || "") != body.secondCode) {
+        return res.json({
+            code: 500,
+            msg: "页面不存在",
+        });
+    }
+    const pageContent = getPageContent(body.page);
     if (!pageContent) {
         return res.json({
             code: 500,
@@ -245,7 +325,7 @@ myRouter.post("/deleteItem", (req, res) => {
             data: null
         });
     }
-    const index = pageContent.list.findIndex(c => c.uuid == uuid);
+    const index = pageContent.list.findIndex(c => c.uuid == body.uuid);
     if (index == -1) {
         return res.json({
             code: 500,
@@ -261,7 +341,7 @@ myRouter.post("/deleteItem", (req, res) => {
         }
     }
     pageContent.list.splice(index, 1);
-    fs.writeFileSync(path.join(pageContentDir, `${page}.json`), JSON.stringify(pageContent));
+    fs.writeFileSync(path.join(pageContentDir, `${body.page}.json`), JSON.stringify(pageContent));
     res.json({
         code: 200,
         msg: "操作成功",
@@ -270,25 +350,28 @@ myRouter.post("/deleteItem", (req, res) => {
 });
 
 myRouter.post("/editPage", (req, res) => {
-    const { name, title }: PageConfigType = req.body;
-    const pageConfig = getPageConfig(name)
+    const body: PageEditConfigType = req.body;
+    const pageConfig = getPageConfig(body.name!);
 
-    if (!pageConfig) {
+    if (!pageConfig || (pageConfig.secondCode || "") != body.secondCode) {
         return res.json({
             code: 500,
             msg: "页面不存在",
             data: null
         });
     }
-    if (!title) {
+    if (!body.title) {
         return res.json({
             code: 500,
             msg: "请填写标题",
             data: null
         });
     }
-    pageConfig.title = title;
-    fs.writeFileSync(path.join(pageConfigDir, `${name}.json`), JSON.stringify(pageConfig));
+    pageConfig.title = body.title;
+    pageConfig.secondCode = body.editSecondCode || "";
+    pageConfig.defaultContentFile = body.defaultContentFile;
+    pageConfig.defaultSecret = body.defaultSecret;
+    fs.writeFileSync(path.join(pageConfigDir, `${body.name}.json`), JSON.stringify(pageConfig));
     res.json({
         code: 200,
         msg: "操作成功",
@@ -297,22 +380,22 @@ myRouter.post("/editPage", (req, res) => {
 });
 
 myRouter.post("/addPage", (req, res) => {
-    const { name, title }: PageConfigType = req.body;
-    if (!name) {
+    const body: PageConfigType = req.body;
+    if (!body.name) {
         return res.json({
             code: 500,
             msg: "请填写页面名称",
             data: null
         });
     }
-    if (!title) {
+    if (!body.title) {
         return res.json({
             code: 500,
             msg: "请填写标题",
             data: null
         });
     }
-    if (fs.existsSync(path.join(pageConfigDir, `${name}.json`))) {
+    if (fs.existsSync(path.join(pageConfigDir, `${body.name}.json`))) {
         return res.json({
             code: 500,
             msg: "页面已存在",
@@ -322,21 +405,24 @@ myRouter.post("/addPage", (req, res) => {
     const uuid = nanoid(32);
     const pageConfig: PageConfigType = {
 
-        title: title,
-        name: name,
+        title: body.title,
+        name: body.name,
         uuid: uuid,
+        secondCode: body.secondCode || "",
+        defaultContentFile: body.defaultContentFile,
+        defaultSecret: body.defaultSecret
 
     };
-    fs.writeFileSync(path.join(pageConfigDir, `${name}.json`), JSON.stringify(pageConfig));
+    fs.writeFileSync(path.join(pageConfigDir, `${body.name}.json`), JSON.stringify(pageConfig));
     const pageContent: PageContentType = {
         list: [],
         uuid: uuid,
     };
-    fs.writeFileSync(path.join(pageContentDir, `${name}.json`), JSON.stringify(pageContent));
+    fs.writeFileSync(path.join(pageContentDir, `${body.name}.json`), JSON.stringify(pageContent));
     const json: PageType = {
         list: [],
         config: pageConfig
-    }
+    };
     res.json({
         code: 200,
         msg: "操作成功",
@@ -345,7 +431,7 @@ myRouter.post("/addPage", (req, res) => {
 });
 
 myRouter.post("/deletePage", (req, res) => {
-    const { uuid, name }: { uuid: string, name: string; } = req.body;
+    const { uuid, name, secondCode }: { uuid: string, name: string; secondCode?: string; } = req.body;
     if (!uuid) {
         return res.json({
             code: 500,
@@ -375,7 +461,7 @@ myRouter.post("/deletePage", (req, res) => {
         });
     }
     const configJson: PageConfigType = JSON.parse(fs.readFileSync(path.join(pageConfigDir, `${name}.json`), 'utf-8'));
-    if (configJson.uuid != uuid) {
+    if (configJson.uuid != uuid || configJson.secondCode != secondCode) {
         return res.json({
             code: 500,
             msg: "匹配不上",
@@ -394,7 +480,7 @@ myRouter.post("/deletePage", (req, res) => {
                 fs.unlinkSync(p);
             }
         }
-        fs.unlinkSync(path.join(pageContentDir, `${name}.json`))
+        fs.unlinkSync(path.join(pageContentDir, `${name}.json`));
     }
 
     fs.unlinkSync(path.join(pageConfigDir, `${name}.json`));
@@ -406,8 +492,15 @@ myRouter.post("/deletePage", (req, res) => {
 });
 
 myRouter.post("/toSendWX", async (req, res) => {
-    const { page, uuid }: { page: string; uuid: string; } = req.body;
-    const pageJson = getPageContent(page)
+    const { page, secondCode, uuid }: { page: string; secondCode?: string; uuid: string; } = req.body;
+    const pageConfig = getPageConfig(page);
+    if (!pageConfig || (pageConfig.secondCode || "") != secondCode) {
+        return res.json({
+            code: 500,
+            msg: "页面不存在",
+        });
+    }
+    const pageJson = getPageContent(page);
     if (!pageJson) {
         return res.json({
             code: 500,
