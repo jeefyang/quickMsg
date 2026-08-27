@@ -47,6 +47,7 @@ export const useDataStore = defineStore('data', () => {
     };
 
     const updateContentList = async () => {
+        tagList.value = [];
         if (!pageData.value.list) {
             return;
         }

@@ -30,12 +30,7 @@
                 ></path>
               </svg>
             </n-icon>
-            <n-image
-              preview-disabled
-              :src="`api/files/${item.content}`"
-              width="100%"
-              v-else
-            ></n-image>
+            <n-image :src="`api/files/${item.content}`" width="100" v-else></n-image>
           </n-flex>
         </template>
         <!-- md -->

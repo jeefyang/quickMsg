@@ -214,7 +214,7 @@ myRouter.post("/addItem", (req, res) => {
         const ext = path.extname(body.filename);
         const newFilename = `${nanoid(32)}${ext}`;
         // 1. 去除前缀 (使用正则匹配 data:image/xxx;base64,)
-        const base64String = body.filename.replace(/^data:image\/\w+;base64,/, '');
+        const base64String = body.content.replace(/^data:image\/\w+;base64,/, '');
 
         // 2. 将 Base64 字符串转换为 Buffer
         const imageBuffer = Buffer.from(base64String, 'base64');

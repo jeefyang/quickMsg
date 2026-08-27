@@ -33,35 +33,33 @@
       <!-- 图片 -->
       <template v-if="selectType == 'image'">
         <n-flex vertical v-if="!props.uuid">
-          <n-upload
-            multiple
-            :max="1"
-            @change="toChangeUpload"
-            ref="uploadRef"
-            v-if="!formData.content"
-          >
-            <n-upload-dragger>
-              <div style="margin-bottom: 12px">
-                <n-icon size="48" :depth="3">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    xmlns:xlink="http://www.w3.org/1999/xlink"
-                    viewBox="0 0 640 512"
-                  >
-                    <path
-                      d="M537.6 226.6c4.1-10.7 6.4-22.4 6.4-34.6c0-53-43-96-96-96c-19.7 0-38.1 6-53.3 16.2C367 64.2 315.3 32 256 32c-88.4 0-160 71.6-160 160c0 2.7.1 5.4.2 8.1C40.2 219.8 0 273.2 0 336c0 79.5 64.5 144 144 144h368c70.7 0 128-57.3 128-128c0-61.9-44-113.6-102.4-125.4zM393.4 288H328v112c0 8.8-7.2 16-16 16h-48c-8.8 0-16-7.2-16-16V288h-65.4c-14.3 0-21.4-17.2-11.3-27.3l105.4-105.4c6.2-6.2 16.4-6.2 22.6 0l105.4 105.4c10.1 10.1 2.9 27.3-11.3 27.3z"
-                      fill="currentColor"
-                    ></path>
-                  </svg>
-                </n-icon>
-              </div>
-              <n-text style="font-size: 16px"> 点击或者拖动文件到该区域来上传 </n-text>
-            </n-upload-dragger>
-          </n-upload>
-          <n-flex vertical align="center" v-else>
-            <div style="width: 100%; max-height: 30vh; overflow: auto">
-              <n-image :src="formData.content" width="100%"></n-image>
-            </div>
+          <n-flex vertical v-if="!formData.content">
+            <n-upload multiple :max="1" @change="toChangeUpload" ref="uploadRef">
+              <n-upload-dragger>
+                <div style="margin-bottom: 12px">
+                  <n-icon size="48" :depth="3">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      xmlns:xlink="http://www.w3.org/1999/xlink"
+                      viewBox="0 0 640 512"
+                    >
+                      <path
+                        d="M537.6 226.6c4.1-10.7 6.4-22.4 6.4-34.6c0-53-43-96-96-96c-19.7 0-38.1 6-53.3 16.2C367 64.2 315.3 32 256 32c-88.4 0-160 71.6-160 160c0 2.7.1 5.4.2 8.1C40.2 219.8 0 273.2 0 336c0 79.5 64.5 144 144 144h368c70.7 0 128-57.3 128-128c0-61.9-44-113.6-102.4-125.4zM393.4 288H328v112c0 8.8-7.2 16-16 16h-48c-8.8 0-16-7.2-16-16V288h-65.4c-14.3 0-21.4-17.2-11.3-27.3l105.4-105.4c6.2-6.2 16.4-6.2 22.6 0l105.4 105.4c10.1 10.1 2.9 27.3-11.3 27.3z"
+                        fill="currentColor"
+                      ></path>
+                    </svg>
+                  </n-icon>
+                </div>
+                <n-text style="font-size: 16px"> 点击或者拖动文件到该区域来上传 </n-text>
+              </n-upload-dragger>
+            </n-upload>
+            <n-flex justify="center">
+              <n-button type="primary" @click="pasteClipboard">粘贴剪切板</n-button>
+            </n-flex>
+          </n-flex>
+
+          <n-flex vertical align="center" justify="center" v-else>
+            <n-image :src="formData.content" width="200"></n-image>
             <n-button type="error" @click="clearUpload">清除</n-button>
           </n-flex>
         </n-flex>
@@ -182,6 +180,41 @@ watch(
   },
 )
 
+const pasteClipboard = async () => {
+  try {
+    const types: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpeg',
+      'image/jpg': 'jpg',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/bmp': 'bmp',
+      'image/tiff': 'tiff',
+      'image/svg+xml': 'svg',
+      'image/ico': 'ico',
+      'image/x-icon': 'icon',
+    }
+    const items = await navigator.clipboard.read()
+
+    for (const item of items) {
+      // 查找图片类型
+      const imageType = item.types.find((type) => type.startsWith('image/'))
+      if (imageType) {
+        const blob = await item.getType(imageType)
+        formData.content = await fileToBase64(blob)
+        formData.filename = `image.${types[imageType] || 'png'}`
+
+        return
+      }
+    }
+
+    msg.error('剪切板中没有图片')
+  } catch (err) {
+    msg.error('读取失败')
+    console.error(err)
+  }
+}
+
 const toChangeSelect = () => {
   formData.content = ''
   switchMd.value = false
@@ -190,7 +223,7 @@ const toChangeSelect = () => {
   }
 }
 
-function fileToBase64(file: File): Promise<string> {
+function fileToBase64(file: File | Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
 
