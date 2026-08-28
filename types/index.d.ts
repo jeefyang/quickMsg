@@ -45,6 +45,8 @@ type PageItemCacheType = PageItemType & {
     /** 用于操作,不保存的 */
     _switchNoSecret?: boolean;
     _contentFileUrl?: string;
+    /** 是否展开 */
+    _isSpread?: boolean;
 };
 
 

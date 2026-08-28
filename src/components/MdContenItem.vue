@@ -1,5 +1,5 @@
 <template>
-  <div style="overflow: auto; scrollbar-width: none" :style="{ maxHeight: props.maxHeight }">
+  <n-scrollbar :style="{ maxHeight: props.maxHeight }">
     <MdPreview
       class="p-2"
       v-model="props.content"
@@ -7,7 +7,7 @@
       previewTheme="atom"
       :codeFoldable="false"
     />
-  </div>
+  </n-scrollbar>
 </template>
 
 <script setup lang="ts">

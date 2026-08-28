@@ -18,7 +18,11 @@
     <n-card size="huge" aria-modal="true" bordered style="width: 600px; max-width: 100%">
       <n-form>
         <n-form-item label="二次验证码">
-          <n-input v-model:value="secondCode" placeholder="请输入二次验证码,可留空"></n-input>
+          <n-input
+            v-model:value="secondCode"
+            placeholder="请输入二次验证码,可留空"
+            clearable
+          ></n-input>
         </n-form-item>
       </n-form>
       <n-flex justify="end">

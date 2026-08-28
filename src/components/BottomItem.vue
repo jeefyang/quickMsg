@@ -10,12 +10,12 @@
       </n-icon>
     </n-icon-wrapper>
   </div>
-  <ModalContentItem v-model:show="showModal"></ModalContentItem>
+  <ModalEditContentItem v-model:show="showModal"></ModalEditContentItem>
 </template>
 <script setup lang="ts">
 import { useDataStore } from '@/stores/data'
 import { reactive, ref } from 'vue'
-import ModalContentItem from './ModalContentItem.vue'
+import ModalEditContentItem from './ModalEditContentItem.vue'
 
 const dataStore = useDataStore()
 const showModal = ref(false)
@@ -29,5 +29,6 @@ const toAdd = () => {
   position: fixed;
   bottom: 20px;
   left: 20px;
+  z-index: 2;
 }
 </style>

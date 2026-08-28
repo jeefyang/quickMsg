@@ -5,12 +5,15 @@
     @update:value="changeLang"
     :disabled="!props.canSwitchLang"
   />
-
-  <section data-syntax-theme="vscode-plus" style="max-height: 50vh; overflow-y: auto">
-    <micro-lighter :language="_lang" line-numbers>
-      <pre><code :contentEditable="props.editable?'plaintext-only':undefined" spellcheck="false" @focus="onFocus" @input="onInput" @blur="onBlur" :innerHTML="props.content"></code></pre>
-    </micro-lighter>
-  </section>
+  <n-scrollbar :style="{ maxHeight: props.maxHeight }">
+    <section data-syntax-theme="vscode-plus">
+      <micro-lighter :language="_lang" line-numbers>
+        <pre
+          style="width: fit-content"
+        ><code :contentEditable="props.editable?'plaintext-only':undefined" spellcheck="false" @focus="onFocus" @input="onInput" @blur="onBlur" :innerHTML="props.content"></code></pre>
+      </micro-lighter>
+    </section>
+  </n-scrollbar>
 </template>
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
@@ -25,11 +28,13 @@ const props = withDefaults(
     content: string
     /** 是否可以选择语言 */
     canSwitchLang?: boolean
+    maxHeight?: string
   }>(),
   {
     editable: false,
     lang: 'javascript',
     canSwitchLang: false,
+    maxHeight: '50vh',
   },
 )
 

@@ -1,10 +1,27 @@
 <template>
   <n-flex vertical>
     <n-flex vertical class="ml-3 mr-3 mb-4" v-for="item in dataStore.itemList" :key="item.uuid">
-      <n-card bordered @click="item._switchNoSecret = !item._switchNoSecret">
+      <n-card header-class="cardHeader">
+        <template #header>
+          <n-flex justify="space-between" align="center">
+            <n-button
+              class="ml-2 mt-2"
+              size="tiny"
+              type="primary"
+              @click="item._isSpread = !item._isSpread"
+              >{{ !item._isSpread ? '展开' : '折叠' }}</n-button
+            >
+            <div style="font-size: 12px" class="mr-2">
+              {{ dataStore.getDateFn(item.updateTime!) }}
+            </div>
+          </n-flex>
+        </template>
         <!-- 文本 -->
         <template v-if="item.type == 'text'">
-          <div v-if="item.isSecret && !item._switchNoSecret">
+          <n-scrollbar
+            v-if="item.isSecret && !item._switchNoSecret"
+            :style="{ maxHeight: item._isSpread ? '80vh' : '200px' }"
+          >
             {{
               item.content
                 .split(/./)
@@ -12,8 +29,10 @@
                 .map((c) => '*')
                 .join('')
             }}
-          </div>
-          <div v-else>{{ item.content }}</div>
+          </n-scrollbar>
+          <n-scrollbar v-else :style="{ maxHeight: item._isSpread ? '80vh' : '200px' }">{{
+            item.content
+          }}</n-scrollbar>
         </template>
         <!-- 图片 -->
         <template v-if="item.type == 'image'">
@@ -30,7 +49,7 @@
                 ></path>
               </svg>
             </n-icon>
-            <n-image :src="`api/files/${item.content}`" width="100" v-else></n-image>
+            <n-image :src="`api/files/${item.content}`" width="200" v-else></n-image>
           </n-flex>
         </template>
         <!-- md -->
@@ -38,19 +57,27 @@
           <n-flex width="100%" justify="center" v-if="item.isSecret && !item._switchNoSecret">
             <SecretItem></SecretItem>
           </n-flex>
-
-          <MdContenItem :content="item.content" v-else></MdContenItem>
+          <MdContenItem
+            :max-height="item._isSpread ? '80vh' : '200px'"
+            :content="item.content"
+            v-else
+          ></MdContenItem>
         </template>
         <!-- 代码 -->
         <template v-if="item.type == 'code'">
           <n-flex width="100%" justify="center" v-if="item.isSecret && !item._switchNoSecret">
             <SecretItem></SecretItem>
           </n-flex>
-          <CodeItem :content="item.content" :lang="item.codeLang" v-else></CodeItem>
+          <CodeItem
+            :content="item.content"
+            :lang="item.codeLang"
+            v-else
+            :max-height="item._isSpread ? '80vh' : '200px'"
+          ></CodeItem>
         </template>
       </n-card>
       <!-- 按钮 -->
-      <n-flex justify="space-between" align="center">
+      <n-flex align="center">
         <n-flex>
           <n-button size="tiny" type="info" @click="toCopy(item)">复制</n-button>
           <n-button size="tiny" @click="toEdit(item)">修改</n-button>
@@ -65,17 +92,24 @@
           <n-button size="tiny" type="error" :loading="item.uuid == loading" @click="toDel(item)"
             >删除</n-button
           >
+          <n-button
+            size="tiny"
+            type="info"
+            dashed
+            @click="item._switchNoSecret = !item._switchNoSecret"
+            v-if="item.isSecret"
+            >{{ item._switchNoSecret ? '密文' : '明文' }}</n-button
+          >
         </n-flex>
-        <div style="font-size: 12px">{{ dataStore.getDateFn(item.updateTime!) }}</div>
       </n-flex>
     </n-flex>
-    <ModalContentItem v-model:show="showModal" :uuid="editUUid"></ModalContentItem>
+    <ModalEditContentItem v-model:show="showModal" :uuid="editUUid"></ModalEditContentItem>
   </n-flex>
 </template>
 <script setup lang="ts">
 import { useDataStore } from '@/stores/data'
 import { useDialog, useMessage } from 'naive-ui'
-import ModalContentItem from './ModalContentItem.vue'
+import ModalEditContentItem from './ModalEditContentItem.vue'
 import { ref } from 'vue'
 import MdContenItem from './MdContenItem.vue'
 import SecretItem from './SecretItem.vue'
@@ -200,4 +234,13 @@ const toCopy = async (item: PageItemType) => {
   }
 }
 </script>
-<style scoped></style>
+<style scoped>
+:deep(.cardHeader) {
+  margin: 0 0 5px 0;
+  padding: 0;
+}
+.box {
+  max-height: 300px;
+  /* overflow-y: auto; */
+}
+</style>
