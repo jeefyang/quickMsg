@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 import path from 'path';
 import axios from "axios";
 import sharp from 'sharp';
+import multer from 'multer';
 
 const myRouter: Router = Router();
 const configPath = "./data/config.json";
@@ -24,6 +25,21 @@ if (!fs.existsSync(pageConfigDir)) {
 if (!fs.existsSync(pageContentDir)) {
     fs.mkdirSync(pageContentDir, { recursive: true });
 }
+
+
+
+// 文件过滤器（可选，此处允许所有文件类型）
+const fileFilter = (req: any, file: any, cb: (err: any, acceptFile: boolean) => void) => {
+    // 允许所有类型，如需限制可在此判断 file.mimetype
+    cb(null, true);
+};
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: fileFilter,
+    limits: { fileSize: 1024 * 1024 * 50 } // 50MB 限制
+});
+
 
 const getConfig = () => {
     if (!fs.existsSync(configPath)) {
@@ -558,6 +574,42 @@ myRouter.get("/files/:filename", async (req, res) => {
     const { filename } = req.params;
     return res.sendFile(path.resolve(path.join(filesDir, filename)));
 
+});
+
+myRouter.post("/uploadFile", upload.single('file'), async (req, res) => {
+
+    try {
+        if (!req.file) {
+            return res.json({
+                code: 500,
+                msg: "没有收到文件",
+                data: null
+            });
+        }
+
+        const uniqueSuffix = Date.now().toString(32) + '_' + nanoid(12);
+        const ext = path.extname(req.file.originalname);
+        const basename = req.body.replaceBasename || path.basename(req.file.originalname, ext);
+        const newfilename = `${basename}_${uniqueSuffix}${ext}`;
+
+        fs.writeFileSync(path.join(filesDir, newfilename), req.file.buffer);
+
+        // 返回成功信息
+        res.json({
+            code: 200,
+            msg: "上传成功",
+            data: {
+                filename: newfilename
+            }
+        });
+    } catch (error) {
+        console.error('上传处理错误:', error);
+        return res.json({
+            code: 500,
+            msg: "上传识别",
+            data: null
+        });
+    }
 });
 
 export default myRouter;

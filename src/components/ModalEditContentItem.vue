@@ -77,7 +77,13 @@
             placeholder="请填写markdown"
             style="min-height: 30vh"
           />
-          <n-button @click="switchMd = true">预览</n-button>
+          <n-flex>
+            <!-- 隐藏的file input，接受任意文件类型 -->
+            <input type="file" ref="mdUploadInput" style="display: none" @change="mdPasterFile" />
+            <n-button @click="mdPasterFileClick">文件粘贴</n-button>
+            <n-button @click="switchMd = true">预览</n-button>
+            <n-button @click="mdPasterClipboard">剪切板粘贴</n-button>
+          </n-flex>
         </n-flex>
       </template>
       <n-divider />
@@ -143,6 +149,7 @@ const switchMd = ref(false)
 const loading = ref(false)
 
 const uploadRef = ref<UploadInst | null>(null)
+const mdUploadInput = ref<HTMLInputElement | null>(null)
 
 const selectList: { label: string; val: PageItemTypeType }[] = [
   { label: '文本', val: 'text' },
@@ -180,20 +187,21 @@ watch(
   },
 )
 
+const fileTypes: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpeg',
+  'image/jpg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+  'image/svg+xml': 'svg',
+  'image/ico': 'ico',
+  'image/x-icon': 'icon',
+}
+
 const pasteClipboard = async () => {
   try {
-    const types: Record<string, string> = {
-      'image/png': 'png',
-      'image/jpeg': 'jpeg',
-      'image/jpg': 'jpg',
-      'image/gif': 'gif',
-      'image/webp': 'webp',
-      'image/bmp': 'bmp',
-      'image/tiff': 'tiff',
-      'image/svg+xml': 'svg',
-      'image/ico': 'ico',
-      'image/x-icon': 'icon',
-    }
     const items = await navigator.clipboard.read()
 
     for (const item of items) {
@@ -202,7 +210,7 @@ const pasteClipboard = async () => {
       if (imageType) {
         const blob = await item.getType(imageType)
         formData.content = await fileToBase64(blob)
-        formData.filename = `image.${types[imageType] || 'png'}`
+        formData.filename = `image.${fileTypes[imageType] || 'png'}`
 
         return
       }
@@ -264,6 +272,66 @@ const clearUpload = () => {
   }
   formData.content = ''
   formData.filename = ''
+}
+
+const mdPasterFileClick = async () => {
+  mdUploadInput.value?.click()
+}
+
+const toMdImgContent = (url: string, alt: string = 'myUpload') => {
+  return `<image src="./api/files/${url}" alt="${alt}" style="width:100%; max-width:400px; display:block;"/>`
+}
+
+const mdPasterFile = async (e: Event) => {
+  const file: File = (<any>e?.target)?.files?.[0]
+  if (!file) {
+    msg.error('请选择文件')
+    return
+  }
+  const uploadFormData = new FormData()
+  uploadFormData.append('file', file) // 字段名 'file' 与后端对应
+  uploadFormData.append('replaceBasename', `${dataStore.getPageName()}`)
+  loading.value = true
+  const res = await fetch('./api/uploadFile', {
+    method: 'POST',
+    body: uploadFormData,
+  })
+  const data: { filename: string } = (await res.json()).data
+
+  formData.content += `\n${toMdImgContent(data.filename)}\n`
+  loading.value = false
+}
+
+const mdPasterClipboard = async () => {
+  try {
+    const items = await navigator.clipboard.read()
+
+    for (const item of items) {
+      // 查找图片类型
+      const imageType = item.types.find((type) => type.startsWith('image/'))
+      if (imageType) {
+        const blob = await item.getType(imageType)
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', blob, `image.${fileTypes[imageType] || 'png'}`) // 字段名 'file' 与后端对应
+        uploadFormData.append('replaceBasename', `${dataStore.getPageName()}`)
+        loading.value = true
+        const res = await fetch('./api/uploadFile', {
+          method: 'POST',
+          body: uploadFormData,
+        })
+        const data: { filename: string } = (await res.json()).data
+
+        formData.content += `\n${toMdImgContent(data.filename, 'myPasterUpload')}\n`
+        loading.value = false
+        return
+      }
+    }
+
+    msg.error('剪切板中没有图片')
+  } catch (err) {
+    msg.error('读取失败')
+    console.error(err)
+  }
 }
 
 const toSubmit = async () => {
